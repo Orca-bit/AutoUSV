@@ -158,7 +158,9 @@ StateWeight::StateWeight(
   Real lateral_velocity,
   Real yaw_rate,
   Real acceleration,
-  Real jerk)
+  Real jerk,
+  Real left_cmd,
+  Real right_cmd)
 : m_pose_x_weight{pose_x},
   m_pose_y_weight{pose_y},
   m_heading_weight{heading},
@@ -166,7 +168,9 @@ StateWeight::StateWeight(
   m_lateral_velocity_weight{lateral_velocity},
   m_yaw_rate_weight{yaw_rate},
   m_acceleration_weight{acceleration},
-  m_jerk_weight{jerk}
+  m_jerk_weight{jerk},
+  m_left_cmd_weight{left_cmd},
+  m_right_cmd_weight{right_cmd}
 {
   if (pose_x < Real{}) {  // zero initialization
     throw std::domain_error{"Pose x weight is negative!"};
@@ -191,6 +195,12 @@ StateWeight::StateWeight(
   }
   if (jerk < Real{}) {  // zero initialization
     throw std::domain_error{"Jerk weight is negative!"};
+  }
+  if (left_cmd < Real{}) {
+    throw std::domain_error{"Left cmd weight is negative!"};
+  }
+  if (right_cmd < Real{}) {
+    throw std::domain_error{"Right cmd weight is negative!"};
   }
 }
 
@@ -232,6 +242,16 @@ Real StateWeight::acceleration() const noexcept
 Real StateWeight::jerk() const noexcept
 {
   return m_jerk_weight;
+}
+
+Real StateWeight::left_cmd() const noexcept
+{
+  return m_left_cmd_weight;
+}
+
+Real StateWeight::right_cmd() const noexcept
+{
+  return m_right_cmd_weight;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

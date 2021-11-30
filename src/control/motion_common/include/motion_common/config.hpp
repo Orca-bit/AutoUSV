@@ -130,7 +130,9 @@ public:
     Real lateral_velocity,
     Real yaw_rate,
     Real acceleration,
-    Real jerk);
+    Real jerk,
+    Real left_cmd,
+    Real right_cmd);
   MOTION_COMMON_COPY_MOVE_ASSIGNABLE(StateWeight)
 
   Real pose_x() const noexcept;
@@ -141,6 +143,8 @@ public:
   Real yaw_rate() const noexcept;
   Real acceleration() const noexcept;
   Real jerk() const noexcept;
+  Real left_cmd() const noexcept;
+  Real right_cmd() const noexcept;
 
 private:
   Real m_pose_x_weight;
@@ -151,6 +155,8 @@ private:
   Real m_yaw_rate_weight;
   Real m_acceleration_weight;
   Real m_jerk_weight;
+  Real m_left_cmd_weight;
+  Real m_right_cmd_weight;
 };  // class StateWeight
 
 /// \brief Specifies various parameters specific to the optimization problem and it's behaviors
