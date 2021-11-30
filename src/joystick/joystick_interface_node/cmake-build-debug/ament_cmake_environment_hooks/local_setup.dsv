@@ -1,0 +1,3 @@
+source;share/joystick_interface_node/environment/ament_prefix_path.sh
+source;share/joystick_interface_node/environment/library_path.sh
+source;share/joystick_interface_node/environment/path.sh

@@ -1,0 +1,16 @@
+#include "usv_msgs/msg/DetectedObjectKinematics.idl"
+#include "usv_msgs/msg/ObjectClassification.idl"
+#include "usv_msgs/msg/Shape.idl"
+
+module usv_msgs {
+  module msg {
+    struct DetectedObject {
+      @range (min=0.0, max=1.0)
+      float existence_probability;
+
+      sequence<usv_msgs::msg::ObjectClassification> classification;
+      usv_msgs::msg::DetectedObjectKinematics kinematics;
+      usv_msgs::msg::Shape shape;
+    };
+  };
+};

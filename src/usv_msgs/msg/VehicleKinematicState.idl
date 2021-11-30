@@ -1,0 +1,18 @@
+#include "usv_msgs/msg/TrajectoryPoint.idl"
+#include "geometry_msgs/msg/Transform.idl"
+#include "std_msgs/msg/Header.idl"
+
+module usv_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      " VehicleKinematicState.msg" "\n"
+      " Representation of a trajectory point with timestamp for the controller")
+    struct VehicleKinematicState {
+      std_msgs::msg::Header header;
+
+      usv_msgs::msg::TrajectoryPoint state;
+
+      geometry_msgs::msg::Transform delta;
+    };
+  };
+};

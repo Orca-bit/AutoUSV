@@ -1,0 +1,21 @@
+#include "builtin_interfaces/msg/Time.idl"
+
+module usv_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      " Information that is sent to Vehicle interface")
+    struct VehicleControlCommand {
+      builtin_interfaces::msg::Time stamp;
+
+      @verbatim (language="comment", text=
+        " should be negative when reversed")
+      @default (value=0.0)
+      float left_cmd;
+
+      @verbatim (language="comment", text=
+        " should be negative when reversed")
+      @default (value=0.0)
+      float right_cmd;
+    };
+  };
+};

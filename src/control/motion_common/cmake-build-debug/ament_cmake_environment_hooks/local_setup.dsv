@@ -1,0 +1,3 @@
+source;share/motion_common/environment/ament_prefix_path.sh
+source;share/motion_common/environment/library_path.sh
+source;share/motion_common/environment/path.sh

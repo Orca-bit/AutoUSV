@@ -1,0 +1,13 @@
+#include "builtin_interfaces/msg/Time.idl"
+
+module usv_msgs {
+  module msg {
+    struct RawControlCommand {
+      builtin_interfaces::msg::Time stamp;
+
+      float left_cmd;
+
+      float right_cmd;
+    };
+  };
+};
