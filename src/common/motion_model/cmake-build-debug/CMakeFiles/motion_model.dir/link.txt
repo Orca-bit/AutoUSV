@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC -g -shared -Wl,-soname,libmotion_model.so -o libmotion_model.so CMakeFiles/motion_model.dir/src/linear_motion_model.cpp.o CMakeFiles/motion_model.dir/src/differential_drive_motion_model.cpp.o  -Wl,-rpath,/home/liuhao/ros2_ws/usv_ws/install/state_vector/lib: /home/liuhao/ros2_ws/usv_ws/install/state_vector/lib/libstate_vector.so 
