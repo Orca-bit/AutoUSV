@@ -106,9 +106,10 @@ void MpcController::apply_nominal_weights(const StateWeight & cfg, const Index s
       static_cast<AcadoReal>(cfg.lateral_velocity());
     acadoVariables.W[idx + (IDY_VEL_ANGULAR * NY) + IDY_VEL_ANGULAR] =
       static_cast<AcadoReal>(cfg.yaw_rate());
-    // TODO
-    acadoVariables.W[idx + (IDY_LEFT_CMD * NY) + IDY_LEFT_CMD] = AcadoReal{};
-    acadoVariables.W[idx + (IDY_RIGHT_CMD * NY) + IDY_RIGHT_CMD] = AcadoReal{};
+    acadoVariables.W[idx + (IDY_LEFT_CMD * NY) + IDY_LEFT_CMD] =
+      static_cast<AcadoReal>(cfg.left_cmd());
+    acadoVariables.W[idx + (IDY_RIGHT_CMD * NY) + IDY_RIGHT_CMD] =
+      static_cast<AcadoReal>(cfg.right_cmd());
   }
 }
 
@@ -131,7 +132,7 @@ void MpcController::zero_nominal_weights(const Index start, Index end)
     throw std::logic_error{"Inconsistent bounds: zero! There's likely an indexing bug somewhere"};
   }
   // 0 == hardcoded, 1 == variable, but time invariant, 2 == time varying
-  static_assert(ACADO_WEIGHTING_MATRICES_TYPE == 2, "Weighting matrices should vary per timestep)");
+  static_assert(ACADO_WEIGHTING_MATRICES_TYPE == 2, "Weighting matrices should vary per step)");
   static_assert(ACADO_NY == 8, "Unexpected number of reference variables");
   constexpr auto NY2 = NY * NY;
   std::fill(&acadoVariables.W[start * NY2], &acadoVariables.W[end * NY2], AcadoReal{});
@@ -202,6 +203,8 @@ void MpcController::set_reference(
     acadoVariables.y[ydx + IDY_VEL_LONG] = static_cast<AcadoReal>(pt.longitudinal_velocity_mps);
     acadoVariables.y[ydx + IDY_HEADING] =
       static_cast<AcadoReal>(motion_common::to_angle(pt.heading));
+    acadoVariables.y[ydx + IDY_VEL_TRAN] = static_cast<AcadoReal>(pt.lateral_velocity_mps);
+    acadoVariables.y[ydx + IDYN_VEL_ANGULAR] =static_cast<AcadoReal>(pt.heading_rate_rps);
   }
 }
 
@@ -237,6 +240,8 @@ void MpcController::set_terminal_reference(const Point & pt) noexcept
   acadoVariables.yN[IDYN_Y] = static_cast<AcadoReal>(pt.y);
   acadoVariables.yN[IDYN_VEL_LONG] = static_cast<AcadoReal>(pt.longitudinal_velocity_mps);
   acadoVariables.yN[IDYN_HEADING] = static_cast<AcadoReal>(motion_common::to_angle(pt.heading));
+  acadoVariables.yN[IDYN_VEL_TRAN] = static_cast<AcadoReal>(pt.lateral_velocity_mps);
+  acadoVariables.yN[IDYN_VEL_ANGULAR] = static_cast<AcadoReal>(pt.heading_rate_rps);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -255,7 +260,7 @@ const Trajectory & MpcController::handle_new_trajectory(const Trajectory & traje
 
   // Set terminal for infinite horizon control, and unset for finite horizon
   if (t_max < HORIZON) {
-    // set remianing unused points from t_max to HORIZON as zero_nominal
+    // set remaining unused points from t_max to HORIZON as zero_nominal
     zero_nominal_weights(t_max, HORIZON);
   }
   // Set last reference point (with special weights) to one past whatever

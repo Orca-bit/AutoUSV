@@ -1,1 +1,0 @@
-/usr/bin/c++ -g CMakeFiles/code_generator.dir/scripts/usv_dynamics_code_generator.cpp.o -o code_generator  -Wl,-rpath,/home/liuhao/ros2_ws/usv_ws/install/acado_vendor/lib /home/liuhao/ros2_ws/usv_ws/install/acado_vendor/lib/libacado_toolkit_s.so /home/liuhao/ros2_ws/usv_ws/install/acado_vendor/lib/libhpmpc.so 

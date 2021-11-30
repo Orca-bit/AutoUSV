@@ -70,7 +70,9 @@ protected:
       10.0F,  // lateral velocity
       10.0F,  // yaw rate
       10.0F,  // acceleration
-      10.0F  // jerk
+      10.0F,  // jerk
+      10.0F,  // left_cmd
+      10.0F  // right_cmd
     },
     StateWeight{
       1000.0F,  // pose_x
@@ -80,7 +82,9 @@ protected:
       1000.0F,  // lateral velocity
       1000.0F,  // yaw rate
       1000.0F,  // acceleration
-      1000.0F  // jerk
+      1000.0F,  // jerk
+      1000.0F,  // left_cmd
+      1000.0F  // right_cmd
     }};
 };  // class sanity_checks_base
 class SanityChecks : public sanity_checks_base
