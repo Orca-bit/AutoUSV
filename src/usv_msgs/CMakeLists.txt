@@ -23,11 +23,11 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Quaternion32.idl"
   "msg/RawControlCommand.idl"
   "msg/Shape.idl"
+  "msg/StateEstimation.idl"
   "msg/Trajectory.idl"
   "msg/TrajectoryPoint.idl"
   "msg/VehicleControlCommand.idl"
   "msg/VehicleKinematicState.idl"
-  "msg/VehicleStateCommand.idl"
   DEPENDENCIES
     "builtin_interfaces"
     "geometry_msgs"

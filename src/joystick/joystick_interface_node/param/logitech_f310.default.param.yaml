@@ -1,7 +1,6 @@
 /**:
   ros__parameters:
     control_command: "raw"
-    recordreplay_command_enabled: false
     # Which index in the joy message corresponds to which axis
     axes:
       # In our version of the joystick driver, axes typically go from -1.0 to 1.0
@@ -18,7 +17,3 @@
       right_cmd: 0.0
     # Buttons are not yet implemented
     # Index for which button is which
-    buttons:
-      recordreplay_start_record : 7 # start button
-      recordreplay_start_replay : 8 # logo button
-      recordreplay_stop : 6 # back button

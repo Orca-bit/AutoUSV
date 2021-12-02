@@ -1,0 +1,46 @@
+#include "builtin_interfaces/msg/Time.idl"
+
+module usv_msgs {
+    module msg {
+        @verbatim (language="comment", text="real-time estimated states and parameters")
+        struct StateEstimation {
+            builtin_interfaces::msg::Time stamp;
+            
+            @default (value=0.0)
+            float u;
+            
+            @default (value=0.0)
+            float v;
+            
+            @default (value=0.0)
+            float r;
+            
+            @default (value=0.0)
+            float m1;
+            
+            @default (value=0.0)
+            float m2;
+            
+            @default (value=0.0)
+            float m3;
+            
+            @default (value=0.0)
+            float d1;
+            
+            @default (value=0.0)
+            float d2;
+            
+            @default (value=0.0)
+            float d3;
+            
+            @default (value=0.0)
+            float tau_env_u;
+            
+            @default (value=0.0)
+            float tau_env_v;
+            
+            @default (value=0.0)
+            float tau_env_r;
+        };
+    };
+};
