@@ -6,6 +6,7 @@
 #define JOYSTICK_INTERFACE_NODE_JOYSTICK_INTERFACE_NODE_HPP
 
 #include <joystick_interface/joystick_interface.hpp>
+#include <mpark_variant_vendor/variant.hpp>
 #include <rclcpp/rclcpp.hpp>
 
 namespace joystick_interface_node
@@ -26,9 +27,14 @@ private:
   /// publish
   void on_joy(sensor_msgs::msg::Joy::SharedPtr msg);
 
-  using RawControl = usv_msgs::msg::VehicleControlCommand;
+  using BasicControl = usv_msgs::msg::VehicleControlCommand;
+  using HighLevelControl = usv_msgs::msg::HighLevelControlCommand;
 
-  rclcpp::Publisher<RawControl>::SharedPtr m_raw_cmd_pub{};
+  template<typename T>
+  using PubT = typename rclcpp::Publisher<T>::SharedPtr;
+  using ControlPub = mpark::variant<PubT<BasicControl>, PubT<HighLevelControl>>;
+  ControlPub m_cmd_pub{};
+
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr m_joy_sub{nullptr};
 };
 }  // namespace joystick_interface_node

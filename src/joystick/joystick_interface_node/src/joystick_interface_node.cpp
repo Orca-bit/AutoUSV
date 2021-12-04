@@ -40,13 +40,17 @@ JoystickInterfaceNode::JoystickInterfaceNode(const rclcpp::NodeOptions & node_op
   check_set(axis_offset_map, Axes::LEFT_CMD, "axis_offset.left_cmd");
   check_set(axis_offset_map, Axes::RIGHT_CMD, "axis_offset.right_cmd");
 
-  // TODO: now only raw control available
-  if (control_command == "raw") {
-    m_raw_cmd_pub =
-      create_publisher<RawControl>("raw_cmd", rclcpp::QoS{10U}.reliable().durability_volatile());
+  // TODO: now only basic control available
+  if (control_command == "basic") {
+    m_cmd_pub = create_publisher<BasicControl>(
+      "basic_cmd", rclcpp::QoS{10U}.reliable().durability_volatile());
+  } else if (control_command == "high_level") {
+    RCLCPP_WARN_STREAM(get_logger(), "High Level cmd not implemented yet");
+    m_cmd_pub = create_publisher<HighLevelControl>(
+      "high_level_cmd", rclcpp::QoS{10U}.reliable().durability_volatile());
   } else {
     throw std::domain_error{
-      "JoystickVehicleInterfaceNode does not support " + control_command + "command control mode"};
+      "JoystickInterfaceNode does not support " + control_command + "command control mode"};
   }
 
   m_joy_sub = create_subscription<sensor_msgs::msg::Joy>(
@@ -60,11 +64,19 @@ JoystickInterfaceNode::JoystickInterfaceNode(const rclcpp::NodeOptions & node_op
 // callback func
 void JoystickInterfaceNode::on_joy(const sensor_msgs::msg::Joy::SharedPtr msg)
 {
-  // publish raw cmd
-  const auto raw_cmd = m_core->compute_command<RawControl>(*msg);
-  // for debug
-  std::cout << "left_cmd: " << raw_cmd.left_cmd << "right_cmd: " << raw_cmd.right_cmd << std::endl;
-  m_raw_cmd_pub->publish(raw_cmd);
+  // Command publish
+  const auto compute_publish_command = [this, &msg](auto && pub) -> void {
+    using MessageT =
+      typename std::decay_t<decltype(pub)>::element_type::MessageUniquePtr::element_type;
+    const auto cmd = m_core->compute_command<MessageT>(*msg);
+    // for Debug
+    if (std::is_same<MessageT, BasicControl>::value) {
+      RCLCPP_INFO_STREAM(
+        get_logger(), "Left_cmd: " << cmd.left_cmd << " Right_cmd: " << cmd.right_cmd);
+    }
+    pub->publish(cmd);
+  };
+  mpark::visit(compute_publish_command, m_cmd_pub);
 }
 }  // namespace joystick_interface_node
 

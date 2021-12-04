@@ -2,7 +2,7 @@
   ros__parameters:
     cycle_time_ms: 10
     # Only one of the four control command topics need be specified
-    # "raw", "basic"
+    # "high_level", "basic"
     control_command: "basic"
-    left_thruster_usb_name: "tty/USB0"
-    right_thruster_usb_name: "tty/USB1"
+    left_thruster_usb_name: "/dev/ttyUSB0"
+    right_thruster_usb_name: "/dev/ttyUSB1"

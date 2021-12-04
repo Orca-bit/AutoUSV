@@ -10,12 +10,12 @@
   <buildtool_depend>ament_cmake_auto</buildtool_depend>
   <buildtool_depend>usv_auto_cmake</buildtool_depend>
 
+  <depend>boost</depend>
   <depend>usv_common</depend>
   <depend>usv_msgs</depend>
   <depend>mpark_variant_vendor</depend>
   <depend>rclcpp</depend>
   <depend>time_utils</depend>
-  <depend>serial_driver</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

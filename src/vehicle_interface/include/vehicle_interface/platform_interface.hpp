@@ -3,23 +3,23 @@
 
 #include <chrono>
 
+#include <boost/asio/io_service.hpp>
+#include <boost/asio/serial_port.hpp>
 #include <common/types.hpp>
-#include <serial_driver/serial_driver.hpp>
 #include <vehicle_interface/visibility_control.hpp>
 
-#include <usv_msgs/msg/raw_control_command.hpp>
+#include <usv_msgs/msg/high_level_control_command.hpp>
 #include <usv_msgs/msg/vehicle_control_command.hpp>
 
 using usv::common::types::bool8_t;
 
-using usv_msgs::msg::RawControlCommand;
+using usv_msgs::msg::HighLevelControlCommand;
 using usv_msgs::msg::VehicleControlCommand;
 
-using drivers::common::IoContext;
-using drivers::serial_driver::FlowControl;
-using drivers::serial_driver::Parity;
-using drivers::serial_driver::SerialPort;
-using drivers::serial_driver::StopBits;
+using boost::asio::buffer;
+using boost::asio::io_service;
+using boost::asio::serial_port;
+using boost::asio::serial_port_base;
 
 namespace usv
 {
@@ -47,24 +47,29 @@ public:
   PlatformInterface(
     const std::string & left_thruster_usb_name, const std::string & right_thruster_usb_name);
   /// Destructor
-  ~PlatformInterface() = default;
+  ~PlatformInterface();
   // copy forbidden
   PlatformInterface(const PlatformInterface &) = delete;
   PlatformInterface & operator=(const PlatformInterface &) = delete;
 
   bool8_t send_control_command(const VehicleControlCommand & msg);
-  bool8_t send_control_command(const RawControlCommand & msg);
+  bool8_t send_control_command(const HighLevelControlCommand & msg);
 
   std::string get_left_usb_port_name() const noexcept;
   std::string get_right_usb_port_name() const noexcept;
+
+  io_service & ios() const;
+  void waitForExit();
 
 private:
   std::string m_left_thruster_usb_name;
   std::string m_right_thruster_usb_name;
 
-  SerialPort m_left_usb;
-  SerialPort m_right_usb;
+  std::shared_ptr<io_service> m_ios;
+  std::shared_ptr<io_service::work> m_work;
 
+  serial_port m_left_usb;
+  serial_port m_right_usb;
 };  // class PlatformInterface
 }  // namespace vehicle_interface
 }  // namespace drivers

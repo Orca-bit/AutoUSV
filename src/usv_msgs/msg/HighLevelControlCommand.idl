@@ -2,11 +2,17 @@
 
 module usv_msgs {
   module msg {
-    struct RawControlCommand {
+    struct HighLevelControlCommand {
       builtin_interfaces::msg::Time stamp;
 
-      float left_cmd;
+      float tau_u;
 
+      float tau_v;
+      
+      float tau_r;
+      
+      float left_cmd;
+      
       float right_cmd;
     };
   };

@@ -14,7 +14,7 @@
 #include <vehicle_interface/platform_interface.hpp>
 #include <vehicle_interface/visibility_control.hpp>
 
-#include <usv_msgs/msg/raw_control_command.hpp>
+#include <usv_msgs/msg/high_level_control_command.hpp>
 #include <usv_msgs/msg/vehicle_control_command.hpp>
 
 namespace usv
@@ -71,9 +71,9 @@ private:
   rclcpp::TimerBase::SharedPtr m_read_timer{nullptr};
 
   using BasicSub = rclcpp::Subscription<usv_msgs::msg::VehicleControlCommand>::SharedPtr;
-  using RawSub = rclcpp::Subscription<usv_msgs::msg::RawControlCommand>::SharedPtr;
+  using HighLevelSub = rclcpp::Subscription<usv_msgs::msg::HighLevelControlCommand>::SharedPtr;
 
-  mpark::variant<RawSub, BasicSub> m_command_sub{};
+  mpark::variant<HighLevelSub, BasicSub> m_command_sub{};
 
   std::unique_ptr<PlatformInterface> m_interface;
   std::chrono::system_clock::time_point m_last_command_stamp{};

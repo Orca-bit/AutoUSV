@@ -27,6 +27,13 @@ JoystickInterface::VehicleControl JoystickInterface::compute_command(
   return res;
 }
 
+///TODO: not implemented yet
+template <>
+JoystickInterface::HighLevelControl JoystickInterface::compute_command(
+  const sensor_msgs::msg::Joy &)
+{
+  return HighLevelControl{};
+}
 
 template <typename T>
 void JoystickInterface::axis_value(const sensor_msgs::msg::Joy & msg, Axes axis, T & value) const

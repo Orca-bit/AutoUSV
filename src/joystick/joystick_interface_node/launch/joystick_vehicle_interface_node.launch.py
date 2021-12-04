@@ -15,13 +15,13 @@ def generate_launch_description():
 
     # --------------------------------- Params -------------------------------
 
-    # In combination 'raw', 'basic' and 'high_level' control
-    # in what mode of control comands to operate in,
+    # In combination 'basic' and 'high_level' control
+    # in what mode of control commands to operate in,
     # only one of them can be active at a time with a value
-    # ============================== now only 'raw' ==========================
+    # ============================== now only 'basic' ==========================
     control_command_param = DeclareLaunchArgument(
         'control_command',
-        default_value="raw",  # use "raw", "basic" or "high_level"
+        default_value="basic",  # use "basic" or "high_level"
         description='command control mode topic name')
 
     # Default joystick translator params
@@ -51,8 +51,7 @@ def generate_launch_description():
             {"control_command": LaunchConfiguration('control_command')}
         ],
         remappings=[
-            ("raw_command", "/vehicle/raw_command"),
-            ("state_command", "/vehicle/state_command")
+            ("basic_cmd", "usv/basic_cmd")
         ])
 
     ld = launch.LaunchDescription([

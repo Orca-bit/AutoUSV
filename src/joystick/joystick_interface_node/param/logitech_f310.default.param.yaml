@@ -1,6 +1,6 @@
 /**:
   ros__parameters:
-    control_command: "raw"
+    control_command: "basic"
     # Which index in the joy message corresponds to which axis
     axes:
       # In our version of the joystick driver, axes typically go from -1.0 to 1.0
@@ -8,10 +8,8 @@
       right_cmd: 3
     # Scale and offset of axes: val = (raw * scale) + offset
     axis_scale:
-      left_cmd: 100.0
-      right_cmd: 100.0
-      # curvature:
-      # acceleration:
+      left_cmd: 127.0
+      right_cmd: 127.0
     axis_offset:
       left_cmd: 0.0
       right_cmd: 0.0

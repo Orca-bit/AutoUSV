@@ -63,7 +63,7 @@ rclcpp::Logger VehicleInterfaceNode::logger() const noexcept
 template <typename T> void VehicleInterfaceNode::on_command_message(const T &) {}
 
 template <>
-void VehicleInterfaceNode::on_command_message(const usv_msgs::msg::RawControlCommand & msg)
+void VehicleInterfaceNode::on_command_message(const usv_msgs::msg::HighLevelControlCommand & msg)
 {
   /// not implemented
   if (!m_interface->send_control_command(msg)) {
@@ -114,10 +114,11 @@ void VehicleInterfaceNode::init(
   if (control_command.topic == "basic") {
     using BasicControlCommand = usv_msgs::msg::VehicleControlCommand;
     m_command_sub = create_subscription<BasicControlCommand>(
-      "vehicle_command", rclcpp::QoS{10U}, cmd_callback(BasicControlCommand{}));
-  } else if (control_command.topic == "raw") {
-    using RCC = usv_msgs::msg::RawControlCommand;
-    m_command_sub = create_subscription<RCC>("raw_command", rclcpp::QoS{10U}, cmd_callback(RCC{}));
+      "basic_cmd", rclcpp::QoS{10U}, cmd_callback(BasicControlCommand{}));
+  } else if (control_command.topic == "high_level") {
+    using HCC = usv_msgs::msg::HighLevelControlCommand;
+    m_command_sub =
+      create_subscription<HCC>("high_level_cmd", rclcpp::QoS{10U}, cmd_callback(HCC{}));
   } else {
     throw std::domain_error{"Vehicle interface must have exactly one command subscription"};
   }

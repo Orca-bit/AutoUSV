@@ -10,6 +10,7 @@
 #include <sensor_msgs/msg/joy.hpp>
 #include <std_msgs/msg/u_int8.hpp>
 #include <usv_msgs/msg/vehicle_control_command.hpp>
+#include <usv_msgs/msg/high_level_control_command.hpp>
 
 namespace joystick_interface
 {
@@ -39,6 +40,7 @@ private:
   void axis_value(const sensor_msgs::msg::Joy & msg, Axes axis, T & value) const;
 
   using VehicleControl = usv_msgs::msg::VehicleControlCommand;
+  using HighLevelControl = usv_msgs::msg::HighLevelControlCommand;
 
   AxisMap m_axis_map{};
   AxisScaleMap m_axis_scale_map{};
