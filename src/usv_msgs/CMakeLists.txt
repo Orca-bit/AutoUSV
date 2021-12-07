@@ -18,6 +18,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/DetectedObjects.idl"
   "msg/DiagnosticHeader.idl"
   "msg/HighLevelControlCommand.idl"
+  "msg/MotorReport1.idl"
+  "msg/MotorReport2.idl"
   "msg/ObjectClassification.idl"
   "msg/PointClusters.idl"
   "msg/PointXYZIF.idl"

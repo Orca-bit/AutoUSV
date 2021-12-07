@@ -1,6 +1,6 @@
 /**:
   ros__parameters:
-    cycle_time_ms: 10
+    cycle_time_ms: 100
     # Only one of the four control command topics need be specified
     # "high_level", "basic"
     control_command: "basic"

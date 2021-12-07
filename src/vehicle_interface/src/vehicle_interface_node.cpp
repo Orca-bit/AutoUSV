@@ -60,7 +60,10 @@ rclcpp::Logger VehicleInterfaceNode::logger() const noexcept
   return get_logger();
 }
 
-template <typename T> void VehicleInterfaceNode::on_command_message(const T &) {}
+template <typename T> void VehicleInterfaceNode::on_command_message(const T &)
+{
+  RCLCPP_WARN_STREAM(logger(), "on_command_message: check the cmd msg type: basic or high_level");
+}
 
 template <>
 void VehicleInterfaceNode::on_command_message(const usv_msgs::msg::HighLevelControlCommand & msg)

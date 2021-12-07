@@ -1,0 +1,63 @@
+#include "builtin_interfaces/msg/Time.idl"
+
+module usv_msgs {
+  module msg {
+    struct MotorReport1 {
+      builtin_interfaces::msg::Time stamp;
+
+      @default (value=FALSE)
+      boolean stall;
+      
+      @default (value=FALSE)
+      boolean motor_over_temperature;
+      
+      @default (value=FALSE)
+      boolean mos_over_temperature;
+      
+      @default (value=FALSE)
+      boolean overcurrent;
+      
+      @default (value=FALSE)
+      boolean fault_8031;
+      
+      @default (value=FALSE)
+      boolean communication_failure;
+      
+      @default (value=FALSE)
+      boolean motor_temperature_error;
+      
+      @default (value=FALSE)
+      boolean mos_temperature_alarm;
+      
+      @default (value=FALSE)
+      boolean overvoltage;
+      
+      @default (value=FALSE)
+      boolean undervoltage;
+      
+      @default (value=FALSE)
+      boolean circuit_failure;
+      
+      @default (value=FALSE)
+      boolean charge;
+      
+      @default (value=FALSE)
+      boolean fan_failure;
+      
+      @default (value=0.0)
+      float motor_power;   
+      
+      @default (value=0.0)
+      float voltage;
+      
+      @default (value=0.0)
+      float rotating_speed;
+      
+      @default (value=0.0)
+      float phase_current;
+      
+      @default (value=0)
+      int16 motor_temperature;
+    };
+  };
+};

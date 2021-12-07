@@ -10,6 +10,7 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
         src/platform_interface.cpp
         src/vehicle_interface_node.cpp)
 usv_set_compile_options(${PROJECT_NAME})
+target_compile_options(${PROJECT_NAME} PRIVATE -Wno-conversion)
 
 set(NODE_NAME vehicle_interface_exe)
 ament_auto_add_executable(${NODE_NAME}

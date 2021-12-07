@@ -1,0 +1,27 @@
+#include "builtin_interfaces/msg/Time.idl"
+
+module usv_msgs {
+  module msg {
+    struct MotorReport2 {
+      builtin_interfaces::msg::Time stamp;
+      
+      @default (value=0)
+      int16 mos_temperature;
+      
+      @default (value=0)
+      int16 battery_temperature;
+      
+      @default (value=0.0)
+      float bus_current;
+      
+      @default (value=0)
+      uint16 single_run_time;
+      
+      @default (value=0)
+      uint16 total_run_time;
+      
+      @default (value=0)
+      uint16 recharge_time;
+    };
+  };
+};
