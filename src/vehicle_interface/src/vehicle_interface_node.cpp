@@ -41,7 +41,13 @@ VehicleInterfaceNode::VehicleInterfaceNode(
     topic_num_matches_from_param("right_thruster_usb_name").topic));
 
   // Actually init
-  init(topic_num_matches_from_param("control_command"), time("cycle_time_ms"));
+  init(
+    topic_num_matches_from_param("control_command"),
+    TopicNumMatches{"left_motor_report1"},
+    TopicNumMatches{"right_motor_report1"},
+    TopicNumMatches{"left_motor_report2"},
+    TopicNumMatches{"right_motor_report2"},
+    time("cycle_time_ms"));
 }
 
 
@@ -99,9 +105,29 @@ void VehicleInterfaceNode::on_command_message(const usv_msgs::msg::VehicleContro
 
 ////////////////////////////////////////////////////////////////////////////////
 void VehicleInterfaceNode::init(
-  const TopicNumMatches & control_command, const std::chrono::nanoseconds & cycle_time)
+  const TopicNumMatches & control_command,
+  const TopicNumMatches & left_motor_report1,
+  const TopicNumMatches & right_motor_report1,
+  const TopicNumMatches & left_motor_report2,
+  const TopicNumMatches & right_motor_report2,
+  const std::chrono::nanoseconds & cycle_time)
 {
   m_cycle_time = cycle_time;
+  // Timer
+  m_read_timer = create_wall_timer(m_cycle_time, [this]() {
+    try {
+      read_and_publish();
+    } catch (...) {
+      on_error(std::current_exception());
+    }
+  });
+  // Make publishers
+  m_left_motor_report1 = create_publisher<MotorReport1>(left_motor_report1.topic, rclcpp::QoS{10U});
+  m_right_motor_report1 =
+    create_publisher<MotorReport1>(right_motor_report1.topic, rclcpp::QoS{10U});
+  m_left_motor_report2 = create_publisher<MotorReport2>(left_motor_report2.topic, rclcpp::QoS{10U});
+  m_right_motor_report2 =
+    create_publisher<MotorReport2>(right_motor_report2.topic, rclcpp::QoS{10U});
 
   const auto cmd_callback = [this](auto t) -> auto
   {
@@ -163,6 +189,39 @@ void VehicleInterfaceNode::on_error(std::exception_ptr eptr)
     RCLCPP_ERROR(logger(), e.what());
   } catch (...) {
     RCLCPP_ERROR(logger(), "VehicleInterface: Unknown error!");
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void VehicleInterfaceNode::read_and_publish()
+{
+  {
+    auto left_motor_report1 = m_interface->get_left_motor_report_1();
+    if (left_motor_report1) {
+      m_left_motor_report1->publish(left_motor_report1.value());
+      m_interface->reset_left_motor_report1();
+    }
+  }
+  {
+    auto right_motor_report1 = m_interface->get_right_motor_report_1();
+    if (right_motor_report1) {
+      m_right_motor_report1->publish(right_motor_report1.value());
+      m_interface->reset_right_motor_report1();
+    }
+  }
+  {
+    auto left_motor_report2 = m_interface->get_left_motor_report_2();
+    if (left_motor_report2) {
+      m_left_motor_report2->publish(left_motor_report2.value());
+      m_interface->reset_left_motor_report2();
+    }
+  }
+  {
+    auto right_motor_report2 = m_interface->get_right_motor_report_2();
+    if (right_motor_report2) {
+      m_right_motor_report2->publish(right_motor_report2.value());
+      m_interface->reset_right_motor_report2();
+    }
   }
 }
 

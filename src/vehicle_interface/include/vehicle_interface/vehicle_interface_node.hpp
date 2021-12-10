@@ -60,18 +60,27 @@ private:
   // Helper function called in constructors
   VEHICLE_INTERFACE_LOCAL void init(
     const TopicNumMatches & control_command,
+    const TopicNumMatches & left_motor_report1,
+    const TopicNumMatches & right_motor_report1,
+    const TopicNumMatches & left_motor_report2,
+    const TopicNumMatches & right_motor_report2,
     const std::chrono::nanoseconds & cycle_time);
 
   // Run just before main loop, ensure that all invariants (possibly from child class) are enforced
   VEHICLE_INTERFACE_LOCAL void check_invariants();
-
+  // Read data from vehicle platform for time budget, publish data
+  VEHICLE_INTERFACE_LOCAL void read_and_publish();
   // Core loop for different input commands. Specialized differently for each topic type
   template <typename T> VEHICLE_INTERFACE_LOCAL void on_command_message(const T & msg);
 
   rclcpp::TimerBase::SharedPtr m_read_timer{nullptr};
+  rclcpp::Publisher<MotorReport1>::SharedPtr m_left_motor_report1{nullptr};
+  rclcpp::Publisher<MotorReport1>::SharedPtr m_right_motor_report1{nullptr};
+  rclcpp::Publisher<MotorReport2>::SharedPtr m_left_motor_report2{nullptr};
+  rclcpp::Publisher<MotorReport2>::SharedPtr m_right_motor_report2{nullptr};
 
-  using BasicSub = rclcpp::Subscription<usv_msgs::msg::VehicleControlCommand>::SharedPtr;
-  using HighLevelSub = rclcpp::Subscription<usv_msgs::msg::HighLevelControlCommand>::SharedPtr;
+  using BasicSub = rclcpp::Subscription<VehicleControlCommand>::SharedPtr;
+  using HighLevelSub = rclcpp::Subscription<HighLevelControlCommand>::SharedPtr;
 
   mpark::variant<HighLevelSub, BasicSub> m_command_sub{};
 

@@ -2,6 +2,11 @@
 
 module usv_msgs {
   module msg {
+    module MotorReport1_Constants {
+      const uint8 FORWARD = 0;
+      const uint8 BACKWARD = 1;
+    };
+  
     struct MotorReport1 {
       builtin_interfaces::msg::Time stamp;
 
@@ -44,20 +49,23 @@ module usv_msgs {
       @default (value=FALSE)
       boolean fan_failure;
       
-      @default (value=0.0)
-      float motor_power;   
+      @default (value=0)
+      uint16 motor_power;   
       
       @default (value=0.0)
       float voltage;
       
-      @default (value=0.0)
-      float rotating_speed;
+      @default (value=0)
+      uint16 rotating_speed;
       
       @default (value=0.0)
       float phase_current;
       
       @default (value=0)
       int16 motor_temperature;
+      
+      @default (value=0)
+      uint8 rotate_direction;
     };
   };
 };

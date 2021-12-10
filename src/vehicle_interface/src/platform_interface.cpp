@@ -56,6 +56,7 @@ bool8_t PlatformInterface::send_control_command(const VehicleControlCommand & ms
   const auto left_to_send = data_to_send(left_data0, left_data1, left_xor);
   const auto right_to_send = data_to_send(right_data0, right_data1, right_xor);
 
+  using boost::asio::buffer;
   const auto left_has_sent =
     m_left_usb.write_some(buffer(left_to_send.data(), left_to_send.size()));
   const auto right_has_sent =
@@ -64,6 +65,20 @@ bool8_t PlatformInterface::send_control_command(const VehicleControlCommand & ms
   if (left_has_sent != THROTTLE_DATA_BYTES || right_has_sent != THROTTLE_DATA_BYTES) {
     return false;
   }
+  // preserve the rotation direction
+  {
+    if (msg.left_cmd >= 0) {
+      m_left_direction = RotateDirection::FORWARD;
+    } else {
+      m_left_direction = RotateDirection::BACKWARD;
+    }
+    if (msg.right_cmd >= 0) {
+      m_right_direction = RotateDirection::FORWARD;
+    } else {
+      m_right_direction = RotateDirection::BACKWARD;
+    }
+  }
+
   return true;
 }
 
@@ -130,6 +145,7 @@ std::experimental::optional<MotorReport2> PlatformInterface::get_right_motor_rep
 
 bool8_t PlatformInterface::normal_phase_receive()
 {
+  using boost::asio::read;
   auto left_has_received = read(
     m_left_usb,
     mutable_buffer(m_left_buffer.data(), m_left_buffer.size()),
@@ -159,7 +175,7 @@ bool8_t PlatformInterface::normal_phase_receive()
     auto ptr = port == USBPorts::LEFT ? m_left_buffer.cbegin() : m_right_buffer.cbegin();
     const auto end = ptr + (USBPorts::LEFT == port ? static_cast<sizeT>(left_has_received)
                                                    : static_cast<sizeT>(right_has_received));
-    auto valid_end = ptr;
+    auto valid_end = std::experimental::optional<iterT>{};
     bool8_t valid = false;
     while (!valid) {
       ptr = std::find(ptr, end, HEAD);
@@ -176,7 +192,7 @@ bool8_t PlatformInterface::normal_phase_receive()
         }
         if (xor_check == *(ptr + 2 + data_len)) {
           valid = true;
-          valid_end = ptr + 2 + data_len;
+          valid_end.emplace(ptr + 2 + data_len);
         }
       }
     }
@@ -184,11 +200,11 @@ bool8_t PlatformInterface::normal_phase_receive()
       if (port == USBPorts::LEFT) {
         left_cmd_type = *(ptr + 2);
         left_valid_data_begin = ptr + 3;
-        left_valid_data_end = valid_end;
+        left_valid_data_end = valid_end.value();
       } else if (port == USBPorts::RIGHT) {
         right_cmd_type = *(ptr + 2);
         right_valid_data_begin = ptr + 3;
-        right_valid_data_end = valid_end;
+        right_valid_data_end = valid_end.value();
       }
     }
     return valid;
@@ -235,6 +251,7 @@ bool8_t PlatformInterface::normal_phase_receive()
 
 bool8_t PlatformInterface::answer_22(USBPorts port)
 {
+  using boost::asio::buffer;
   auto buf = buffer(ANSWER_22.data(), ANSWER_22.size());
   size_t has_send = 0;
   if (port == USBPorts::LEFT) {
@@ -247,6 +264,7 @@ bool8_t PlatformInterface::answer_22(USBPorts port)
 
 bool8_t PlatformInterface::answer_26(USBPorts port)
 {
+  using boost::asio::buffer;
   auto buf = buffer(ANSWER_26.data(), ANSWER_26.size());
   size_t has_send = 0;
   if (port == USBPorts::LEFT) {
@@ -264,48 +282,75 @@ void PlatformInterface::update_motor_report1(USBPorts port, iterT cbegin, iterT 
     return;
   }
   usv_msgs::msg::MotorReport1 msg{};
-  // data 0
-  if (((*cbegin) & 0x80) != 0) msg.stall = true;
-  if (((*cbegin) & 0x40) != 0) msg.motor_over_temperature = true;
-  if (((*cbegin) & 0x20) != 0) msg.mos_over_temperature = true;
-  if (((*cbegin) & 0x10) != 0) msg.overcurrent = true;
-  if (((*cbegin) & 0x08) != 0) msg.fault_8031 = true;
-  if (((*cbegin) & 0x04) != 0) msg.communication_failure = true;
-  if (((*cbegin) & 0x02) != 0) msg.motor_temperature_error = true;
-  if (((*cbegin) & 0x01) != 0) msg.mos_temperature_alarm = true;
-  // data 1
-  if (((*(cbegin + 1)) & 0x80) != 0) msg.overvoltage = true;
-  if (((*(cbegin + 1)) & 0x40) != 0) msg.undervoltage = true;
-  if (((*(cbegin + 1)) & 0x20) != 0) msg.circuit_failure = true;
-  if (((*(cbegin + 1)) & 0x10) != 0) msg.charge = true;
-  if (((*(cbegin + 1)) & 0x08) != 0) msg.fan_failure = true;
-  // data 2 and data 3
-  using powerT = std::decay_t<decltype(msg.motor_power)>;
-  msg.motor_power = static_cast<powerT>(
-    (static_cast<uint16_t>(*(cbegin + 2)) << 8) + static_cast<uint16_t>(*(cbegin + 3)));
-  // data 4 and data 5
-  using voltageT = std::decay_t<decltype(msg.voltage)>;
-  msg.voltage =
-    0.1f * static_cast<voltageT>(
-             (static_cast<uint16_t>(*(cbegin + 4)) << 8) + static_cast<uint16_t>(*(cbegin + 5)));
-  // data 6 and data 7
-  using rpmT = std::decay_t<decltype(msg.rotating_speed)>;
-  msg.rotating_speed = static_cast<rpmT>(
-    (static_cast<uint16_t>(*(cbegin + 6)) << 8) + static_cast<uint16_t>(*(cbegin + 7)));
-  // data 8 and data 9
-  using phaseT = std::decay_t<decltype(msg.phase_current)>;
-  msg.phase_current = static_cast<phaseT>(
-    (static_cast<uint16_t>(*(cbegin + 8)) << 8) + static_cast<uint16_t>(*(cbegin + 9)));
-  // data 10 and data 11
-  // TODO check uint -> int
-  using temT = std::decay_t<decltype(msg.motor_temperature)>;
-  msg.motor_temperature = static_cast<temT>(
-    (static_cast<uint16_t>(*(cbegin + 10)) << 8) + static_cast<uint16_t>(*(cbegin + 11)));
+  msg.stamp = get_time_stamp();
+  {
+    // data 0
+    if (((*cbegin) & 0x80) != 0) msg.stall = true;
+    if (((*cbegin) & 0x40) != 0) msg.motor_over_temperature = true;
+    if (((*cbegin) & 0x20) != 0) msg.mos_over_temperature = true;
+    if (((*cbegin) & 0x10) != 0) msg.overcurrent = true;
+    if (((*cbegin) & 0x08) != 0) msg.fault_8031 = true;
+    if (((*cbegin) & 0x04) != 0) msg.communication_failure = true;
+    if (((*cbegin) & 0x02) != 0) msg.motor_temperature_error = true;
+    if (((*cbegin) & 0x01) != 0) msg.mos_temperature_alarm = true;
+  }
+  {
+    // data 1
+    if (((*(cbegin + 1)) & 0x80) != 0) msg.overvoltage = true;
+    if (((*(cbegin + 1)) & 0x40) != 0) msg.undervoltage = true;
+    if (((*(cbegin + 1)) & 0x20) != 0) msg.circuit_failure = true;
+    if (((*(cbegin + 1)) & 0x10) != 0) msg.charge = true;
+    if (((*(cbegin + 1)) & 0x08) != 0) msg.fan_failure = true;
+  }
+  {
+    // data 2 and data 3
+    using powerT = std::decay_t<decltype(msg.motor_power)>;
+    msg.motor_power = static_cast<powerT>(
+      (static_cast<uint16_t>(*(cbegin + 2)) << 8) + static_cast<uint16_t>(*(cbegin + 3)));
+  }
+  {
+    // data 4 and data 5
+    using voltageT = std::decay_t<decltype(msg.voltage)>;
+    msg.voltage =
+      0.1f * static_cast<voltageT>(
+               (static_cast<uint16_t>(*(cbegin + 4)) << 8) + static_cast<uint16_t>(*(cbegin + 5)));
+  }
+  {
+    // data 6 and data 7
+    using rpmT = std::decay_t<decltype(msg.rotating_speed)>;
+    msg.rotating_speed = static_cast<rpmT>(
+      (static_cast<uint16_t>(*(cbegin + 6)) << 8) + static_cast<uint16_t>(*(cbegin + 7)));
+  }
+  {
+    // data 8 and data 9
+    using phaseT = std::decay_t<decltype(msg.phase_current)>;
+    msg.phase_current = static_cast<phaseT>(
+      (static_cast<uint16_t>(*(cbegin + 8)) << 8) + static_cast<uint16_t>(*(cbegin + 9)));
+  }
+  {
+    // data 10 and data 11
+    // TODO check uint -> int
+    using temT = std::decay_t<decltype(msg.motor_temperature)>;
+    msg.motor_temperature = static_cast<temT>(
+      (static_cast<uint16_t>(*(cbegin + 10)) << 8) + static_cast<uint16_t>(*(cbegin + 11)));
+  }
 
   if (USBPorts::LEFT == port) {
+    if (RotateDirection::FORWARD == m_left_direction) {
+      msg.rotate_direction = MotorReport1::FORWARD;
+    } else if (RotateDirection::BACKWARD == m_left_direction) {
+      msg.rotate_direction = MotorReport1::BACKWARD;
+    }
     m_left_motor_report1.emplace(msg);
+    m_left_direction = RotateDirection::NOT_SET;
   } else if (USBPorts::RIGHT == port) {
+    if (RotateDirection::FORWARD == m_right_direction) {
+      msg.rotate_direction = MotorReport1::FORWARD;
+    } else if (RotateDirection::BACKWARD == m_right_direction) {
+      msg.rotate_direction = MotorReport1::BACKWARD;
+    }
     m_right_motor_report1.emplace(msg);
+    m_right_direction = RotateDirection::NOT_SET;
   }
 }
 
@@ -316,38 +361,75 @@ void PlatformInterface::update_motor_report2(USBPorts port, iterT cbegin, iterT 
     return;
   }
   usv_msgs::msg::MotorReport2 msg{};
-  // data0 and data 1
-  // TODO check uint -> int
-  using mosTemerature_T = std::decay_t<decltype(msg.mos_temperature)>;
-  msg.mos_temperature = static_cast<mosTemerature_T>(
-    (static_cast<uint16_t>(*cbegin) << 8) + static_cast<uint16_t>(*(cbegin + 1)));
-  // data 2 and data 3
-  // TODO check uint -> int
-  using batteryTem_T = std::decay_t<decltype(msg.battery_temperature)>;
-  msg.battery_temperature = static_cast<batteryTem_T>(
-    (static_cast<uint16_t>(*(cbegin + 2)) << 8) + static_cast<uint16_t>(*(cbegin + 3)));
-  // data 4 and data 5
-  using busCurrent_T = std::decay_t<decltype(msg.bus_current)>;
-  msg.bus_current = static_cast<busCurrent_T>(
-    (static_cast<uint16_t>(*(cbegin + 4)) << 8) + static_cast<uint16_t>(*(cbegin + 5)));
-  // data 6 and data 7
-  using singleRunTime_T = std::decay_t<decltype(msg.single_run_time)>;
-  msg.single_run_time = static_cast<singleRunTime_T>(
-    (static_cast<uint16_t>(*(cbegin + 6)) << 8) + static_cast<uint16_t>(*(cbegin + 7)));
-  // data 8 and data 9
-  using totalRunTime_T = std::decay_t<decltype(msg.total_run_time)>;
-  msg.total_run_time = static_cast<totalRunTime_T>(
-    (static_cast<uint16_t>(*(cbegin + 8)) << 8) + static_cast<uint16_t>(*(cbegin + 9)));
-  // data 10 and data 11
-  using reChargeTime_T = std::decay_t<decltype(msg.recharge_time)>;
-  msg.recharge_time = static_cast<reChargeTime_T>(
-    (static_cast<uint16_t>(*(cbegin + 10)) << 8) + static_cast<uint16_t>(*(cbegin + 11)));
-
+  msg.stamp = get_time_stamp();
+  {
+    // data0 and data 1
+    // TODO check uint -> int
+    using mosTemerature_T = std::decay_t<decltype(msg.mos_temperature)>;
+    msg.mos_temperature = static_cast<mosTemerature_T>(
+      (static_cast<uint16_t>(*cbegin) << 8) + static_cast<uint16_t>(*(cbegin + 1)));
+  }
+  {
+    // data 2 and data 3
+    // TODO check uint -> int
+    using batteryTem_T = std::decay_t<decltype(msg.battery_temperature)>;
+    msg.battery_temperature = static_cast<batteryTem_T>(
+      (static_cast<uint16_t>(*(cbegin + 2)) << 8) + static_cast<uint16_t>(*(cbegin + 3)));
+  }
+  {
+    // data 4 and data 5
+    using busCurrent_T = std::decay_t<decltype(msg.bus_current)>;
+    msg.bus_current = static_cast<busCurrent_T>(
+      (static_cast<uint16_t>(*(cbegin + 4)) << 8) + static_cast<uint16_t>(*(cbegin + 5)));
+  }
+  {
+    // data 6 and data 7
+    using singleRunTime_T = std::decay_t<decltype(msg.single_run_time)>;
+    msg.single_run_time = static_cast<singleRunTime_T>(
+      (static_cast<uint16_t>(*(cbegin + 6)) << 8) + static_cast<uint16_t>(*(cbegin + 7)));
+  }
+  {
+    // data 8 and data 9
+    using totalRunTime_T = std::decay_t<decltype(msg.total_run_time)>;
+    msg.total_run_time = static_cast<totalRunTime_T>(
+      (static_cast<uint16_t>(*(cbegin + 8)) << 8) + static_cast<uint16_t>(*(cbegin + 9)));
+  }
+  {
+    // data 10 and data 11
+    using reChargeTime_T = std::decay_t<decltype(msg.recharge_time)>;
+    msg.recharge_time = static_cast<reChargeTime_T>(
+      (static_cast<uint16_t>(*(cbegin + 10)) << 8) + static_cast<uint16_t>(*(cbegin + 11)));
+  }
   if (USBPorts::LEFT == port) {
     m_left_motor_report2.emplace(msg);
   } else if (USBPorts::RIGHT == port) {
     m_right_motor_report2.emplace(msg);
   }
+}
+
+void PlatformInterface::reset_left_motor_report1() noexcept
+{
+  m_left_motor_report1 = std::experimental::optional<MotorReport1>{};
+}
+void PlatformInterface::reset_left_motor_report2() noexcept
+{
+  m_left_motor_report2 = std::experimental::optional<MotorReport2>{};
+}
+
+void PlatformInterface::reset_right_motor_report1() noexcept
+{
+  m_right_motor_report1 = std::experimental::optional<MotorReport1>{};
+}
+
+void PlatformInterface::reset_right_motor_report2() noexcept
+{
+  m_right_motor_report2 = std::experimental::optional<MotorReport2>{};
+}
+
+builtin_interfaces::msg::Time PlatformInterface::get_time_stamp()
+{
+  using time_utils::to_message;
+  return to_message(std::chrono::system_clock::now());
 }
 
 }  // namespace vehicle_interface
