@@ -3,17 +3,8 @@
 module usv_msgs {
     module msg {
         @verbatim (language="comment", text="real-time estimated states and parameters")
-        struct StateEstimation {
+        struct EnvEstimation {
             builtin_interfaces::msg::Time stamp;
-            
-            @default (value=0.0)
-            float u;
-            
-            @default (value=0.0)
-            float v;
-            
-            @default (value=0.0)
-            float r;
                       
             @default (value=0.0)
             float tau_env_u;
