@@ -9,6 +9,8 @@ find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 
 rosidl_generate_interfaces(${PROJECT_NAME}
+  "action/PlannerCostmap.idl"
+  "action/PlanTrajectory.idl"
   "msg/BoundingBox.idl"
   "msg/BoundingBoxArray.idl"
   "msg/Complex32.idl"
@@ -32,6 +34,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/VehicleKinematicState.idl"
   DEPENDENCIES
     "builtin_interfaces"
+    "action_msgs"
     "geometry_msgs"
     "sensor_msgs"
     "shape_msgs"

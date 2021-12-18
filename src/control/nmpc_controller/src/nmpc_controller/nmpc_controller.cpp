@@ -158,9 +158,9 @@ void NmpcController::initial_conditions(const Point & state)
   ocp_nlp_constraints_model_set(m_nlp_config, m_nlp_dims, m_nlp_in, 0, "idxbx", idx_bx0.data());
   // Set x0
   std::array<AcadosReal, NX> x0{};
-  x0[IDX_X] = static_cast<AcadosReal>(state.x);
-  x0[IDX_Y] = static_cast<AcadosReal>(state.y);
-  x0[IDX_HEADING] = static_cast<AcadosReal>(motion_common::to_angle(state.heading));
+  x0[IDX_X] = static_cast<AcadosReal>(state.pose.position.x);
+  x0[IDX_Y] = static_cast<AcadosReal>(state.pose.position.y);
+  x0[IDX_HEADING] = static_cast<AcadosReal>(motion_common::to_angle(state.pose.orientation));
   x0[IDX_VEL_LONG] = static_cast<AcadosReal>(state.longitudinal_velocity_mps);
   x0[IDX_VEL_TRAN] = static_cast<AcadosReal>(state.lateral_velocity_mps);
   x0[IDX_VEL_ANGULAR] = static_cast<AcadosReal>(state.heading_rate_rps);
@@ -230,12 +230,12 @@ const NmpcController::Trajectory & NmpcController::get_computed_trajectory() con
   for (std::size_t i = {}; i < HORIZON; ++i) {
     auto & pt = traj.points[i];
     ocp_nlp_out_get(m_nlp_config, m_nlp_dims, m_nlp_out, i, "x", x.data());
-    pt.x = static_cast<Real>(x[IDX_X]);
-    pt.y = static_cast<Real>(x[IDX_Y]);
+    pt.pose.position.x = static_cast<Real>(x[IDX_X]);
+    pt.pose.position.y = static_cast<Real>(x[IDX_Y]);
     pt.longitudinal_velocity_mps = static_cast<Real>(x[IDX_VEL_LONG]);
     pt.lateral_velocity_mps = static_cast<Real>(x[IDX_VEL_TRAN]);
     const auto heading = static_cast<Real>(x[IDX_HEADING]);
-    pt.heading = motion_common::from_angle(heading);
+    pt.pose.orientation = motion_common::from_angle(heading);
     pt.heading_rate_rps = static_cast<Real>(x[IDX_VEL_ANGULAR]);
   }
   return m_computed_trajectory;

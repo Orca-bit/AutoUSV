@@ -1,20 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 project(joystick_interface_node)
 
-# Default to C99
-if (NOT CMAKE_C_STANDARD)
-    set(CMAKE_C_STANDARD 99)
-endif ()
-
-# Default to C++14
-if (NOT CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 14)
-endif ()
-
-if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    add_compile_options(-Wall -Wextra -Wpedantic)
-endif ()
-
 # find dependencies
 find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
@@ -23,6 +9,7 @@ set(JOYSTICK_INTERFACE_LIB_NODE joystick_interface_node)
 
 ament_auto_add_library(${JOYSTICK_INTERFACE_LIB_NODE}
   SHARED src/joystick_interface_node.cpp)
+usv_set_compile_options(${JOYSTICK_INTERFACE_LIB_NODE})
 
 rclcpp_components_register_node(${JOYSTICK_INTERFACE_LIB_NODE}
         PLUGIN "joystick_interface_node::JoystickInterfaceNode"

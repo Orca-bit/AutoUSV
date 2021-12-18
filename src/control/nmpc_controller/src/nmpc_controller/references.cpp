@@ -192,10 +192,10 @@ void NmpcController::set_reference(
   for (auto i = Index{}; i < count; ++i) {
     const auto & pt = traj.points[traj_start + i];
     const auto ydx = y_start + i;
-    y[IDY_X] = static_cast<AcadosReal>(pt.x);
-    y[IDY_Y] = static_cast<AcadosReal>(pt.y);
+    y[IDY_X] = static_cast<AcadosReal>(pt.pose.position.x);
+    y[IDY_Y] = static_cast<AcadosReal>(pt.pose.position.y);
     y[IDY_VEL_LONG] = static_cast<AcadosReal>(pt.longitudinal_velocity_mps);
-    y[IDY_HEADING] = static_cast<AcadosReal>(motion_common::to_angle(pt.heading));
+    y[IDY_HEADING] = static_cast<AcadosReal>(motion_common::to_angle(pt.pose.orientation));
     y[IDY_VEL_TRAN] = static_cast<AcadosReal>(pt.lateral_velocity_mps);
     y[IDYN_VEL_ANGULAR] = static_cast<AcadosReal>(pt.heading_rate_rps);
     ocp_nlp_cost_model_set(m_nlp_config, m_nlp_dims, m_nlp_in, ydx, "yref", y.data());
@@ -234,10 +234,10 @@ bool NmpcController::ensure_reference_consistency(Index horizon)
 void NmpcController::set_terminal_reference(const Point & pt)
 {
   std::array<AcadosReal, NYN> yN{};
-  yN[IDYN_X] = static_cast<AcadosReal>(pt.x);
-  yN[IDYN_Y] = static_cast<AcadosReal>(pt.y);
+  yN[IDYN_X] = static_cast<AcadosReal>(pt.pose.position.x);
+  yN[IDYN_Y] = static_cast<AcadosReal>(pt.pose.position.y);
   yN[IDYN_VEL_LONG] = static_cast<AcadosReal>(pt.longitudinal_velocity_mps);
-  yN[IDYN_HEADING] = static_cast<AcadosReal>(motion_common::to_angle(pt.heading));
+  yN[IDYN_HEADING] = static_cast<AcadosReal>(motion_common::to_angle(pt.pose.orientation));
   yN[IDYN_VEL_TRAN] = static_cast<AcadosReal>(pt.lateral_velocity_mps);
   yN[IDYN_VEL_ANGULAR] = static_cast<AcadosReal>(pt.heading_rate_rps);
   ocp_nlp_cost_model_set(m_nlp_config, m_nlp_dims, m_nlp_in, HORIZON, "yref", yN.data());

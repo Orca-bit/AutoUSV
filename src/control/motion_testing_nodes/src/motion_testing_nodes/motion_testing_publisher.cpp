@@ -28,6 +28,8 @@ namespace motion
 namespace motion_testing_nodes
 {
 using PubAllocT = rclcpp::PublisherOptionsWithAllocator<std::allocator<void>>;
+using motion::motion_common::Real;
+using motion::motion_common::to_angle;
 
 MotionTestingPublisher::MotionTestingPublisher(
   const std::string & node_name,
@@ -50,9 +52,9 @@ MotionTestingPublisher::MotionTestingPublisher(
     min_period(profiles), [this]() -> void { this->on_timer(); }, nullptr);
   // Precompute trajectories, transforms, and transforms
   const auto & s0 = profiles[0].start_state;
-  auto x0 = s0.state.x;
-  auto y0 = s0.state.y;
-  auto yaw0 = s0.state.heading;
+  auto x0 = s0.state.pose.position.x;
+  auto y0 = s0.state.pose.position.y;
+  auto yaw0 = to_angle(s0.state.pose.orientation);
   auto v0 = s0.state.longitudinal_velocity_mps;
   auto t0 = s0.header.stamp;
   for (const auto & prof : profiles) {
@@ -63,9 +65,9 @@ MotionTestingPublisher::MotionTestingPublisher(
     m_traj_period.push_back(prof.active_time);
     const auto & prof_s0 = prof.start_state;
     auto s = motion_testing::make_state(
-      x0,
-      y0,
-      motion_common::to_angle(yaw0),
+      static_cast<Real>(x0),
+     static_cast<Real>(y0),
+      static_cast<Real>(yaw0),
       v0,
       prof_s0.state.acceleration_mps2,
       prof_s0.state.heading_rate_rps,
@@ -81,9 +83,9 @@ MotionTestingPublisher::MotionTestingPublisher(
     const auto end_idx = end_index(prof, traj);
     // set s0
     const auto end_pt = traj.points[end_idx];
-    x0 = end_pt.x;
-    y0 = end_pt.y;
-    yaw0 = end_pt.heading;
+    x0 = end_pt.pose.position.x;
+    y0 = end_pt.pose.position.y;
+    yaw0 = to_angle(end_pt.pose.orientation);
     v0 = end_pt.longitudinal_velocity_mps;
     for (auto idx = 0U; idx < end_idx; ++idx) {
       const auto & pt = traj.points[idx];
@@ -155,14 +157,13 @@ void MotionTestingPublisher::add_state_and_tf(
     std::chrono::milliseconds(1LL));
   tf.header.frame_id = prof.trajectory_frame;
   tf.child_frame_id = prof.ego_frame;
-  using Real = double;
-  tf.transform.translation.x = static_cast<Real>(pt.x);
-  tf.transform.translation.y = static_cast<Real>(pt.y);
+  tf.transform.translation.x = pt.pose.position.x;
+  tf.transform.translation.y = pt.pose.position.y;
   tf.transform.translation.z = {};
-  tf.transform.rotation.x = {};
-  tf.transform.rotation.y = {};
-  tf.transform.rotation.z = static_cast<Real>(pt.heading.imag);
-  tf.transform.rotation.w = static_cast<Real>(pt.heading.real);
+  tf.transform.rotation.x = pt.pose.orientation.x;
+  tf.transform.rotation.y = pt.pose.orientation.y;
+  tf.transform.rotation.z = pt.pose.orientation.z;
+  tf.transform.rotation.w = pt.pose.orientation.w;
   TFMessage msg{rosidl_runtime_cpp::MessageInitialization::ALL};
   if (tf.child_frame_id != tf.header.frame_id) {
     msg.transforms.push_back(tf);
@@ -174,10 +175,7 @@ void MotionTestingPublisher::add_state_and_tf(
   s.header.stamp = time_utils::to_message(
     time_utils::from_message(header.stamp) + time_utils::from_message(pt.time_from_start));
   s.header.frame_id = prof.ego_frame;
-  s.state.x = {};
-  s.state.y = {};
-  s.state.heading.real = 1.0F;
-  s.state.heading.imag = {};
+  s.state.pose = decltype(s.state.pose) {};
   m_states.push_back(s);
 }
 

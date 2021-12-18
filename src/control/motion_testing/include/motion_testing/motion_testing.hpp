@@ -31,16 +31,18 @@ using Generator = std::mt19937;
 using State = usv_msgs::msg::VehicleKinematicState;
 using Point = usv_msgs::msg::TrajectoryPoint;
 using Trajectory = usv_msgs::msg::Trajectory;
+using Index = decltype(Trajectory::points)::size_type;
+using Real = decltype(Point::longitudinal_velocity_mps);
 // TODO(c.ho) Make these more modular
 
 /// \brief Makes a state, intended to make message generation more terse
 MOTION_TESTING_PUBLIC State make_state(
-  float x0,
-  float y0,
-  float heading,
-  float v0,
-  float a0,
-  float turn_rate,
+  Real x0,
+  Real y0,
+  Real heading,
+  Real v0,
+  Real a0,
+  Real turn_rate,
   std::chrono::system_clock::time_point t);
 
 /// \brief Generates a state from a normal distribution with the following bounds:
@@ -92,8 +94,6 @@ MOTION_TESTING_PUBLIC void next_state(
   Generator * gen = nullptr);  // TODO(c.ho) std::optional NOLINT
 // TODO(c.ho) version that takes control commands
 
-using Index = decltype(Trajectory::points)::size_type;
-using Real = decltype(Point::x);
 /// Checks that a trajectory makes constant progress towards a target; returns first
 /// index of point that doesn't advance towards target, otherwise size of trajectory
 /// heading tolerance is in dot product space of 2d quaternion

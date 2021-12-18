@@ -1,5 +1,5 @@
-#include "usv_msgs/msg/Complex32.idl"
 #include "builtin_interfaces/msg/Duration.idl"
+#include "geometry_msgs/msg/Pose.idl"
 
 module usv_msgs {
   module msg {
@@ -8,13 +8,7 @@ module usv_msgs {
     struct TrajectoryPoint {
       builtin_interfaces::msg::Duration time_from_start;
 
-      @default (value=0.0)
-      float x;
-
-      @default (value=0.0)
-      float y;
-
-      usv_msgs::msg::Complex32 heading;
+      geometry_msgs::msg::Pose pose;
 
       @default (value=0.0)
       float longitudinal_velocity_mps;

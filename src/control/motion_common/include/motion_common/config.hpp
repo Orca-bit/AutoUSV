@@ -16,7 +16,6 @@ namespace motion
 namespace motion_common
 {
 using motion_common::Command;
-using motion_common::Heading;
 using motion_common::Index;
 using motion_common::Point;
 using motion_common::Real;

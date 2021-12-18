@@ -23,11 +23,10 @@ if(BUILD_TESTING)
 
   # Unit test
   apex_test_tools_add_gtest(motion_common_unit_tests
-    test/sanity_checks.cpp
     test/interpolation.cpp
     test/trajectory.cpp)
   usv_set_compile_options(motion_common_unit_tests)
-  target_compile_options(motion_common_unit_tests PRIVATE -Wno-float-conversion)
+  target_compile_options(motion_common_unit_tests PRIVATE -Wno-float-conversion -Wno-double-promotion)
   target_link_libraries(motion_common_unit_tests ${PROJECT_NAME})
   add_dependencies(motion_common_unit_tests ${PROJECT_NAME})
   ament_target_dependencies(motion_common_unit_tests

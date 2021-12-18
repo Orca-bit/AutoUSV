@@ -1,0 +1,27 @@
+/**:
+  ros__parameters:
+    # -- Node Configurations --
+    waypoints_velocity: 5.0
+
+    # -- A* search Configurations --
+    # base configs
+    use_back: true
+    only_behind_solutions: false
+    time_limit: 30000.0
+    # robot configs
+    maximum_turning_radius: 20.0
+    minimum_turning_radius: 2.0
+    turning_radius_size: 5
+    vehicle_dimension_margin: 0.0
+    vehicle_length: 2.6
+    vehicle_width: 1.8
+    cg_to_back: 1.2
+    # search configs
+    theta_size: 48
+    goal_angular_tolerance: 0.05236
+    reverse_weight: 2.0
+    goal_lateral_tolerance: 0.25
+    goal_longitudinal_tolerance: 1.0
+    # costmap configs
+    obstacle_threshold: 100
+    distance_heuristic_weight: 1.0

@@ -45,7 +45,7 @@ JoystickInterfaceNode::JoystickInterfaceNode(const rclcpp::NodeOptions & node_op
     m_cmd_pub = create_publisher<BasicControl>(
       "basic_cmd", rclcpp::QoS{10U}.reliable().durability_volatile());
   } else if (control_command == "high_level") {
-    RCLCPP_WARN_STREAM(get_logger(), "High Level cmd not implemented yet");
+    // RCLCPP_WARN_STREAM(get_logger(), "High Level cmd not implemented yet");
     m_cmd_pub = create_publisher<HighLevelControl>(
       "high_level_cmd", rclcpp::QoS{10U}.reliable().durability_volatile());
   } else {
@@ -70,10 +70,10 @@ void JoystickInterfaceNode::on_joy(const sensor_msgs::msg::Joy::SharedPtr msg)
       typename std::decay_t<decltype(pub)>::element_type::MessageUniquePtr::element_type;
     const auto cmd = m_core->compute_command<MessageT>(*msg);
     // for Debug
-    if (std::is_same<MessageT, BasicControl>::value) {
-      RCLCPP_INFO_STREAM(
-        get_logger(), "Left_cmd: " << cmd.left_cmd << " Right_cmd: " << cmd.right_cmd);
-    }
+    //  if (std::is_same<MessageT, BasicControl>::value) {
+    //    RCLCPP_INFO_STREAM(
+    //      get_logger(), "Left_cmd: " << cmd.left_cmd << " Right_cmd: " << cmd.right_cmd);
+    //  }
     pub->publish(cmd);
   };
   mpark::visit(compute_publish_command, m_cmd_pub);

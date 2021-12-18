@@ -7,7 +7,8 @@
   <maintainer email="steepcurve@163.com">liuhao</maintainer>
   <license>TODO: License declaration</license>
 
-  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_auto</buildtool_depend>
+  <buildtool_depend>usv_auto_cmake</buildtool_depend>
 
   <depend>usv_msgs</depend>>
   <depend>joystick_interface</depend>
@@ -16,6 +17,15 @@
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
   <depend>mpark_variant_vendor</depend>
+
+  <build_depend>ament_cmake_gtest</build_depend>
+  <build_depend>usv_common</build_depend>
+
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>joy</exec_depend>
+  <exec_depend>joy_linux</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>lgsvl_interface</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

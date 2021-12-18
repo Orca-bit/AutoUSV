@@ -1,3 +1,5 @@
+// Copyright 2021 AutoUSV
+//
 // Copyright 2019 Christopher Ho
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -251,11 +253,11 @@ Point ControllerBase::predict(const Point & point, std::chrono::nanoseconds dt) 
   using usv::common::state_vector::variable::YAW_CHANGE_RATE;
   // Set up state
   usv::common::motion_model::CatrMotionModel32::State state{};
-  state.at<X>() = point.x;
-  state.at<Y>() = point.y;
+  state.at<X>() = static_cast<Real>(point.pose.position.x);
+  state.at<Y>() = static_cast<Real>(point.pose.position.y);
   state.at<XY_VELOCITY>() = point.longitudinal_velocity_mps;
   state.at<XY_ACCELERATION>() = point.acceleration_mps2;
-  state.at<YAW>() = motion_common::to_angle(point.heading);
+  state.at<YAW>() = static_cast<Real>(motion_common::to_angle(point.pose.orientation));
   state.at<YAW_CHANGE_RATE>() = point.heading_rate_rps;
   state = m_model.predict(state, dt);
   // Get result
@@ -263,11 +265,11 @@ Point ControllerBase::predict(const Point & point, std::chrono::nanoseconds dt) 
   {
     ret.time_from_start =
       time_utils::to_message(time_utils::from_message(point.time_from_start) + dt);
-    ret.x = state.at<X>();
-    ret.y = state.at<Y>();
+    ret.pose.position.x = static_cast<double>(state.at<X>());
+    ret.pose.position.y = static_cast<double>(state.at<Y>());
     ret.longitudinal_velocity_mps = state.at<XY_VELOCITY>();
     ret.acceleration_mps2 = state.at<XY_ACCELERATION>();
-    ret.heading = motion_common::from_angle(state.at<YAW>());
+    ret.pose.orientation = motion_common::from_angle(state.at<YAW>());
     ret.heading_rate_rps = state.at<YAW_CHANGE_RATE>();
   }
   return ret;

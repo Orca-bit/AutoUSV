@@ -104,25 +104,25 @@ TEST(TrajectoryCommonTests, FindNearestIndex) {
 
   // Making a trajectory with positions [(0,0) (1,1) (2,2) (2,4) (4,4)]
   Point p;
-  p.x = 0.0;
-  p.y = 0.0;
-  p.heading = from_angle(M_PI_4);
+  p.pose.position.x = 0.0;
+  p.pose.position.y = 0.0;
+  p.pose.orientation = from_angle(M_PI_4);
   points.push_back(p);
-  p.x = 1.0;
-  p.y = 1.0;
-  p.heading = from_angle(M_PI_4);
+  p.pose.position.x = 1.0;
+  p.pose.position.y = 1.0;
+  p.pose.orientation = from_angle(M_PI_4);
   points.push_back(p);
-  p.x = 2.0;
-  p.y = 2.0;
-  p.heading = from_angle(M_PI_2);
+  p.pose.position.x = 2.0;
+  p.pose.position.y = 2.0;
+  p.pose.orientation = from_angle(M_PI_2);
   points.push_back(p);
-  p.x = 2.0;
-  p.y = 4.0;
-  p.heading = from_angle(0.0);
+  p.pose.position.x = 2.0;
+  p.pose.position.y = 4.0;
+  p.pose.orientation = from_angle(0.0);
   points.push_back(p);
-  p.x = 4.0;
-  p.y = 4.0;
-  p.heading = from_angle(0.0);
+  p.pose.position.x = 4.0;
+  p.pose.position.y = 4.0;
+  p.pose.orientation = from_angle(0.0);
   points.push_back(p);
 
   // No limits on the distance/orientation
@@ -166,20 +166,20 @@ TEST(TrajectoryCommonTests, FindNearestSegmentIndex) {
   Points points;
   // Making a trajectory with positions [(0,0) (1,1) (2,2) (2,4) (4,4)]
   Point p;
-  p.x = 0.0;
-  p.y = 0.0;
+  p.pose.position.x = 0.0;
+  p.pose.position.y = 0.0;
   points.push_back(p);
-  p.x = 1.0;
-  p.y = 1.0;
+  p.pose.position.x = 1.0;
+  p.pose.position.y = 1.0;
   points.push_back(p);
-  p.x = 2.0;
-  p.y = 2.0;
+  p.pose.position.x = 2.0;
+  p.pose.position.y = 2.0;
   points.push_back(p);
-  p.x = 2.0;
-  p.y = 4.0;
+  p.pose.position.x = 2.0;
+  p.pose.position.y = 4.0;
   points.push_back(p);
-  p.x = 4.0;
-  p.y = 4.0;
+  p.pose.position.x = 4.0;
+  p.pose.position.y = 4.0;
   points.push_back(p);
 
   geometry_msgs::msg::Point target;
@@ -218,28 +218,28 @@ TEST(TrajectoryCommonTests, CalcLongitudinalOffsetToSegment) {
   EXPECT_THROW(calcLongitudinalOffsetToSegment(points, 0, target), std::invalid_argument);
 
   Point p;
-  p.x = 0.0;
-  p.y = 0.0;
+  p.pose.position.x = 0.0;
+  p.pose.position.y = 0.0;
   points.push_back(p);
   points.push_back(p);
   EXPECT_THROW(calcLongitudinalOffsetToSegment(points, 0, target), std::runtime_error);
 
   // Making a trajectory with positions [(0,0) (1,0) (2,0) (2,1) (3,1)] ___|‾
   points.clear();
-  p.x = 0.0;
-  p.y = 0.0;
+  p.pose.position.x = 0.0;
+  p.pose.position.y = 0.0;
   points.push_back(p);
-  p.x = 1.0;
-  p.y = 0.0;
+  p.pose.position.x = 1.0;
+  p.pose.position.y = 0.0;
   points.push_back(p);
-  p.x = 2.0;
-  p.y = 0.0;
+  p.pose.position.x = 2.0;
+  p.pose.position.y = 0.0;
   points.push_back(p);
-  p.x = 2.0;
-  p.y = 1.0;
+  p.pose.position.x = 2.0;
+  p.pose.position.y = 1.0;
   points.push_back(p);
-  p.x = 3.0;
-  p.y = 1.0;
+  p.pose.position.x = 3.0;
+  p.pose.position.y = 1.0;
   points.push_back(p);
 
   target.x = 0.0;
@@ -260,20 +260,20 @@ TEST(TrajectoryCommonTests, CalcSignedArcLengthIndexToIndex) {
 
   // Making a trajectory with positions [(0,0) (1,0) (2,0) (2,1) (3,1)] ___|‾
   Point p;
-  p.x = 0.0;
-  p.y = 0.0;
+  p.pose.position.x = 0.0;
+  p.pose.position.y = 0.0;
   points.push_back(p);
-  p.x = 1.0;
-  p.y = 0.0;
+  p.pose.position.x = 1.0;
+  p.pose.position.y = 0.0;
   points.push_back(p);
-  p.x = 2.0;
-  p.y = 0.0;
+  p.pose.position.x = 2.0;
+  p.pose.position.y = 0.0;
   points.push_back(p);
-  p.x = 2.0;
-  p.y = 1.0;
+  p.pose.position.x = 2.0;
+  p.pose.position.y = 1.0;
   points.push_back(p);
-  p.x = 3.0;
-  p.y = 1.0;
+  p.pose.position.x = 3.0;
+  p.pose.position.y = 1.0;
   points.push_back(p);
 
   // Out of range
@@ -301,20 +301,20 @@ TEST(Trajectory, CalcSignedArcLengthPointToIndex)
 
   // Making a trajectory with positions [(0,0) (1,0) (2,0) (2,1) (3,1)] ___|‾
   Point p;
-  p.x = 0.0;
-  p.y = 0.0;
+  p.pose.position.x = 0.0;
+  p.pose.position.y = 0.0;
   points.push_back(p);
-  p.x = 1.0;
-  p.y = 0.0;
+  p.pose.position.x = 1.0;
+  p.pose.position.y = 0.0;
   points.push_back(p);
-  p.x = 2.0;
-  p.y = 0.0;
+  p.pose.position.x = 2.0;
+  p.pose.position.y = 0.0;
   points.push_back(p);
-  p.x = 2.0;
-  p.y = 1.0;
+  p.pose.position.x = 2.0;
+  p.pose.position.y = 1.0;
   points.push_back(p);
-  p.x = 3.0;
-  p.y = 1.0;
+  p.pose.position.x = 3.0;
+  p.pose.position.y = 1.0;
   points.push_back(p);
 
   // Same point
@@ -357,20 +357,20 @@ TEST(Trajectory, CalcSignedArcLengthPointToPoint)
 
   // Making a trajectory with positions [(0,0) (1,0) (2,0) (2,1) (3,1)] ___|‾
   Point p;
-  p.x = 0.0;
-  p.y = 0.0;
+  p.pose.position.x = 0.0;
+  p.pose.position.y = 0.0;
   points.push_back(p);
-  p.x = 1.0;
-  p.y = 0.0;
+  p.pose.position.x = 1.0;
+  p.pose.position.y = 0.0;
   points.push_back(p);
-  p.x = 2.0;
-  p.y = 0.0;
+  p.pose.position.x = 2.0;
+  p.pose.position.y = 0.0;
   points.push_back(p);
-  p.x = 2.0;
-  p.y = 1.0;
+  p.pose.position.x = 2.0;
+  p.pose.position.y = 1.0;
   points.push_back(p);
-  p.x = 3.0;
-  p.y = 1.0;
+  p.pose.position.x = 3.0;
+  p.pose.position.y = 1.0;
   points.push_back(p);
 
   // Same point

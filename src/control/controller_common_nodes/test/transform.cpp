@@ -12,13 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include <gtest/gtest.h>
-#include <controller_common_nodes/controller_base_node.hpp>
-#include <motion_testing/motion_testing.hpp>
-#include <motion_testing_nodes/motion_testing_publisher.hpp>
-#include <motion_testing_nodes/wait_for_matched.hpp>
-#include <time_utils/time_utils.hpp>
-
-#include <rclcpp/rclcpp.hpp>
 
 #include <cmath>
 #include <memory>
@@ -26,17 +19,24 @@
 #include <utility>
 #include <vector>
 
+#include <controller_common_nodes/controller_base_node.hpp>
+#include <motion_testing/motion_testing.hpp>
+#include <motion_testing_nodes/motion_testing_publisher.hpp>
+#include <motion_testing_nodes/wait_for_matched.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <time_utils/time_utils.hpp>
+
 using geometry_msgs::msg::TransformStamped;
+using motion::control::controller_common::BehaviorConfig;
+using motion::control::controller_common::ControllerBase;
+using motion::control::controller_common::ControlReference;
+using motion::control::controller_common_nodes::Command;
+using motion::control::controller_common_nodes::ControllerBaseNode;
+using motion::control::controller_common_nodes::ControllerPtr;
+using motion::motion_testing::make_state;
 using motion::motion_testing_nodes::State;
 using motion::motion_testing_nodes::TFMessage;
 using motion::motion_testing_nodes::Trajectory;
-using motion::motion_testing::make_state;
-using motion::control::controller_common::BehaviorConfig;
-using motion::control::controller_common::ControlReference;
-using motion::control::controller_common::ControllerBase;
-using motion::control::controller_common_nodes::ControllerBaseNode;
-using motion::control::controller_common_nodes::Command;
-using motion::control::controller_common_nodes::ControllerPtr;
 
 constexpr auto cmd_topic = "test_controller_base_node_cmd_tf";
 constexpr auto state_topic = "test_controller_base_node_state_tf";
@@ -49,12 +49,11 @@ class TestTFController : public ControllerBase
 {
 public:
   TestTFController()
-  : ControllerBase{
-      BehaviorConfig{3.0F, std::chrono::milliseconds(100L), ControlReference::SPATIAL}}
+  : ControllerBase{BehaviorConfig{3.0F, std::chrono::milliseconds(100L), ControlReference::SPATIAL}}
   {
   }
 
-  const std::vector<State> & states() const noexcept {return m_states;}
+  const std::vector<State> & states() const noexcept { return m_states; }
 
 protected:
   Command compute_command_impl(const State & state) override
@@ -80,15 +79,14 @@ public:
       tf_topic,
       traj_topic,
       "",
-      static_tf_topic
-  }
+      static_tf_topic}
   {
     auto ptr = std::make_unique<TestTFController>();
     m_controller = ptr.get();
     ControllerBaseNode::set_controller(std::move(ptr));
   }
 
-  const TestTFController & controller() const noexcept {return *m_controller;}
+  const TestTFController & controller() const noexcept { return *m_controller; }
 
 private:
   TestTFController * m_controller{};
@@ -97,14 +95,8 @@ private:
 class Transforms : public ::testing::Test
 {
 protected:
-  void SetUp()
-  {
-    rclcpp::init(0, nullptr);
-  }
-  void TearDown()
-  {
-    (void)rclcpp::shutdown();
-  }
+  void SetUp() { rclcpp::init(0, nullptr); }
+  void TearDown() { (void)rclcpp::shutdown(); }
 };  // Transforms
 
 // Publish static tf: nav_base -> base_link
@@ -133,20 +125,20 @@ TEST_F(Transforms, StaticDynamicTfs)
   (void)::motion::motion_testing_nodes::wait_for_matched(*static_tf_pub, 1U);
   // Spin
   {
-    const auto make_tf = []() -> auto {
-        TFMessage tf_msg{};
-        geometry_msgs::msg::TransformStamped tf{};
-        tf.transform.translation.x = 1.0;
-        tf.transform.translation.y = 2.0;
-        tf.transform.rotation.w = 1.0;
-        tf_msg.transforms.emplace_back(std::move(tf));
-        return tf_msg;
-      };
+    const auto make_tf = []() -> auto
+    {
+      TFMessage tf_msg{};
+      geometry_msgs::msg::TransformStamped tf{};
+      tf.transform.translation.x = 1.0;
+      tf.transform.translation.y = 2.0;
+      tf.transform.rotation.w = 1.0;
+      tf_msg.transforms.emplace_back(std::move(tf));
+      return tf_msg;
+    };
     using motion::motion_testing::constant_velocity_trajectory;
     // State
     const auto stamp = std::chrono::system_clock::time_point{} + std::chrono::milliseconds{50LL};
-    auto state =
-      make_state(1.0F, -2.0F, 0.0F, 3.0F, 0.0F, 0.0F, stamp);
+    auto state = make_state(1.0F, -2.0F, 0.0F, 3.0F, 0.0F, 0.0F, stamp);
     state.header.frame_id = "nav_base";
     // Traj
     auto traj =
@@ -195,10 +187,9 @@ TEST_F(Transforms, StaticDynamicTfs)
   {
     for (const auto & state : ctrl->controller().states()) {
       EXPECT_EQ(state.header.frame_id, "odom");
-      EXPECT_FLOAT_EQ(state.state.x, -1.0F);
-      EXPECT_FLOAT_EQ(state.state.y, -6.0F);
-      EXPECT_FLOAT_EQ(state.state.heading.real, 1.0F);
-      EXPECT_FLOAT_EQ(state.state.heading.imag, 0.0F);
+      EXPECT_EQ(state.state.pose.position.x, -1.0);
+      EXPECT_EQ(state.state.pose.position.y, -6.0);
+      EXPECT_EQ(motion::motion_common::to_angle(state.state.pose.orientation), 0.0);
       EXPECT_FLOAT_EQ(state.state.longitudinal_velocity_mps, 3.0F);
       EXPECT_FLOAT_EQ(state.state.lateral_velocity_mps, 0.0F);
     }

@@ -89,8 +89,8 @@ std::experimental::optional<size_t> findNearestIndex(
       continue;
     }
 
-    const auto base_yaw =
-      static_cast<float64_t>(::motion::motion_common::to_angle(points.at(i).heading));
+    using ::motion::motion_common::to_angle;
+    const auto base_yaw = to_angle(points.at(i).pose.orientation);
     const auto yaw = calcYawDeviation(base_yaw, target_yaw);
     if (std::fabs(yaw) > max_yaw) {
       continue;
@@ -115,10 +115,10 @@ float64_t calcLongitudinalOffsetToSegment(
 
   const auto p_front = points.at(seg_idx);
   const auto p_back = points.at(seg_idx + 1);
-  const auto x_front = static_cast<float64_t>(p_front.x);
-  const auto y_front = static_cast<float64_t>(p_front.y);
-  const auto x_back = static_cast<float64_t>(p_back.x);
-  const auto y_back = static_cast<float64_t>(p_back.y);
+  const auto x_front = static_cast<float64_t>(p_front.pose.position.x);
+  const auto y_front = static_cast<float64_t>(p_front.pose.position.y);
+  const auto x_back = static_cast<float64_t>(p_back.pose.position.x);
+  const auto y_back = static_cast<float64_t>(p_back.pose.position.y);
 
   const Vector3f segment_vec{x_back - x_front, y_back - y_front, 0.0};
   const Vector3f target_vec{

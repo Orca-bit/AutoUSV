@@ -12,46 +12,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include <gtest/gtest.h>
-#include <controller_common_nodes/controller_base_node.hpp>
-#include <motion_testing/motion_testing.hpp>
-#include <motion_testing_nodes/motion_testing_publisher.hpp>
-#include <motion_testing_nodes/wait_for_matched.hpp>
-#include <time_utils/time_utils.hpp>
-
-#include <rclcpp/rclcpp.hpp>
 
 #include <cmath>
 #include <memory>
 #include <string>
 #include <vector>
 
+#include <controller_common_nodes/controller_base_node.hpp>
+#include <motion_testing/motion_testing.hpp>
+#include <motion_testing_nodes/motion_testing_publisher.hpp>
+#include <motion_testing_nodes/wait_for_matched.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <time_utils/time_utils.hpp>
+
 using geometry_msgs::msg::TransformStamped;
+using motion::control::controller_common::BehaviorConfig;
+using motion::control::controller_common::ControllerBase;
+using motion::control::controller_common::ControlReference;
+using motion::control::controller_common_nodes::Command;
+using motion::control::controller_common_nodes::ControllerBaseNode;
+using motion::control::controller_common_nodes::ControllerPtr;
+using motion::control::controller_common_nodes::Diagnostic;
+using motion::control::controller_common_nodes::State;
+using motion::motion_testing::make_state;
 using motion::motion_testing_nodes::State;
 using motion::motion_testing_nodes::TFMessage;
 using motion::motion_testing_nodes::Trajectory;
 using motion::motion_testing_nodes::TrajectoryProfile;
-using motion::motion_testing::make_state;
 using time_utils::from_message;
-using motion::control::controller_common::BehaviorConfig;
-using motion::control::controller_common::ControlReference;
-using motion::control::controller_common::ControllerBase;
-using motion::control::controller_common_nodes::ControllerBaseNode;
-using motion::control::controller_common_nodes::Command;
-using motion::control::controller_common_nodes::State;
-using motion::control::controller_common_nodes::Diagnostic;
-using motion::control::controller_common_nodes::ControllerPtr;
 
 class SanityCheck : public ::testing::Test
 {
 protected:
-  void SetUp()
-  {
-    rclcpp::init(0, nullptr);
-  }
-  void TearDown()
-  {
-    (void)rclcpp::shutdown();
-  }
+  void SetUp() { rclcpp::init(0, nullptr); }
+  void TearDown() { (void)rclcpp::shutdown(); }
 };  // SanityCheck
 
 constexpr auto cmd_topic = "test_controller_base_node_cmd";
@@ -66,55 +60,37 @@ public:
   Listener()
   : Node{"test_controller_base_node_listener"},
     m_traj_sub{create_subscription<Trajectory>(
-        traj_topic, rclcpp::QoS{5},
-        [this](const Trajectory::SharedPtr msg) {
-          m_trajectories.push_back(*msg);
-        })},
+      traj_topic,
+      rclcpp::QoS{5},
+      [this](const Trajectory::SharedPtr msg) { m_trajectories.push_back(*msg); })},
     m_state_sub{create_subscription<State>(
-      state_topic, rclcpp::QoS{50},
-      [this](const State::SharedPtr msg) {
-        m_states.push_back(*msg);
-      })},
-  m_tf_sub{create_subscription<TFMessage>(
-      tf_topic, rclcpp::QoS{50},
+      state_topic,
+      rclcpp::QoS{50},
+      [this](const State::SharedPtr msg) { m_states.push_back(*msg); })},
+    m_tf_sub{create_subscription<TFMessage>(
+      tf_topic,
+      rclcpp::QoS{50},
       [this](const TFMessage::SharedPtr msg) {
         for (const auto & tf : msg->transforms) {
           m_tfs.push_back(tf);
         }
       })},
-  m_cmd_sub{create_subscription<Command>(
-      cmd_topic, rclcpp::QoS{50},
-      [this](const Command::SharedPtr msg) {
-        m_cmds.push_back(*msg);
-      })},
-  m_diag_sub{create_subscription<Diagnostic>(
-      diagnostic_topic, rclcpp::QoS{50},
-      [this](const Diagnostic::SharedPtr msg) {
+    m_cmd_sub{create_subscription<Command>(
+      cmd_topic,
+      rclcpp::QoS{50},
+      [this](const Command::SharedPtr msg) { m_cmds.push_back(*msg); })},
+    m_diag_sub{create_subscription<Diagnostic>(
+      diagnostic_topic, rclcpp::QoS{50}, [this](const Diagnostic::SharedPtr msg) {
         m_diags.push_back(*msg);
       })}
   {
   }
   virtual ~Listener() = default;
-  const std::vector<Trajectory> & trajectories() const
-  {
-    return m_trajectories;
-  }
-  const std::vector<State> & states() const
-  {
-    return m_states;
-  }
-  const std::vector<TransformStamped> & tfs() const
-  {
-    return m_tfs;
-  }
-  const std::vector<Command> & commands() const
-  {
-    return m_cmds;
-  }
-  const std::vector<Diagnostic> & diagnostics() const
-  {
-    return m_diags;
-  }
+  const std::vector<Trajectory> & trajectories() const { return m_trajectories; }
+  const std::vector<State> & states() const { return m_states; }
+  const std::vector<TransformStamped> & tfs() const { return m_tfs; }
+  const std::vector<Command> & commands() const { return m_cmds; }
+  const std::vector<Diagnostic> & diagnostics() const { return m_diags; }
 
   void match() const
   {
@@ -143,8 +119,7 @@ class TestController : public ControllerBase
 {
 public:
   TestController()
-  : ControllerBase{
-      BehaviorConfig{3.0F, std::chrono::milliseconds(100L), ControlReference::SPATIAL}}
+  : ControllerBase{BehaviorConfig{3.0F, std::chrono::milliseconds(100L), ControlReference::SPATIAL}}
   {
   }
 
@@ -169,8 +144,7 @@ public:
       state_topic,
       tf_topic,
       traj_topic,
-      diagnostic_topic
-  }
+      diagnostic_topic}
   {
     ControllerBaseNode::set_controller(std::make_unique<TestController>());
   }
@@ -193,9 +167,7 @@ TEST_F(SanityCheck, Basic)
     state_topic,
     tf_topic,
     std::vector<TrajectoryProfile>{
-    TrajectoryProfile{state1, 10 * ms100, ms100, ms100, "odom", "base_link"}
-  }
-  );
+      TrajectoryProfile{state1, 10 * ms100, ms100, ms100, "odom", "base_link"}});
   // Listener node
   const auto sub = std::make_shared<Listener>();
   // Controller node
@@ -212,11 +184,7 @@ TEST_F(SanityCheck, Basic)
     auto got_enough_commands = false;
     auto got_enough_tfs = false;
     auto got_enough_states = false;
-    while (!pub->done() ||
-      !got_enough_commands ||
-      !got_enough_tfs ||
-      !got_enough_states)
-    {
+    while (!pub->done() || !got_enough_commands || !got_enough_tfs || !got_enough_states) {
       exec.spin_some(std::chrono::milliseconds(10LL));
       got_enough_commands = sub->commands().size() + TOLI > total_msgs;
       got_enough_tfs = sub->tfs().size() + TOLI > total_msgs;
@@ -237,6 +205,7 @@ TEST_F(SanityCheck, Basic)
   {
     // commands
     const auto & cmds = sub->commands();
+    const auto & state_orientation = state1.state.pose.orientation;
     EXPECT_GT(cmds.size() + TOLI, total_msgs) << cmds.size();
     // TODO(c.ho) match against tfs
     for (auto idx = 1U; idx < cmds.size(); ++idx) {
@@ -253,8 +222,8 @@ TEST_F(SanityCheck, Basic)
       EXPECT_LT(fabs(tf_curr.transform.translation.z), TOLD);
       EXPECT_LT(fabs(tf_curr.transform.rotation.y), TOLD);
       EXPECT_LT(fabs(tf_curr.transform.rotation.x), TOLD);
-      EXPECT_LT(fabs(tf_curr.transform.rotation.w - state1.state.heading.real), TOLD);
-      EXPECT_LT(fabs(tf_curr.transform.rotation.z - state1.state.heading.imag), TOLD);
+      EXPECT_LT(fabs(tf_curr.transform.rotation.w - state_orientation.w), TOLD);
+      EXPECT_LT(fabs(tf_curr.transform.rotation.z - state_orientation.z), TOLD);
       const auto & tf_prev = tfs[idx - 1U];
       EXPECT_GE(tf_curr.transform.translation.x, tf_prev.transform.translation.x) << idx;
       EXPECT_LE(tf_curr.transform.translation.y, tf_prev.transform.translation.y) << idx;
@@ -267,16 +236,16 @@ TEST_F(SanityCheck, Basic)
     const auto & states = sub->states();
     EXPECT_GT(states.size() + TOLI, total_msgs) << states.size();
     for (const auto & s : states) {
-      EXPECT_LT(fabsf(s.state.x), TOL);
-      EXPECT_LT(fabsf(s.state.y), TOL);
+      EXPECT_LT(fabs(s.state.pose.position.x), TOL);
+      EXPECT_LT(fabs(s.state.pose.position.y), TOL);
       // Heading is assumed to be 0
-      EXPECT_LT(fabsf(s.state.heading.real - 1.0F), TOL);
-      EXPECT_LT(fabsf(s.state.heading.imag), TOL);
+      EXPECT_LT(fabs(s.state.pose.orientation.w - 1.0), TOL);
+      EXPECT_DOUBLE_EQ(motion::motion_common::to_angle(s.state.pose.orientation), 0.0);
       // velocity etc
     }
     // diagnostics: just a coarse check, got _something_
     const auto & diags = sub->diagnostics();
-    EXPECT_LE(std::abs(static_cast<int>(states.size()) - static_cast<int>(diags.size())), 2) <<
-      states.size() << ", " << diags.size();
+    EXPECT_LE(std::abs(static_cast<int>(states.size()) - static_cast<int>(diags.size())), 2)
+      << states.size() << ", " << diags.size();
   }
 }

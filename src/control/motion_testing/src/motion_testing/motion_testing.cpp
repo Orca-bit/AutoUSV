@@ -13,6 +13,11 @@
 // limitations under the License.
 #include "motion_testing/motion_testing.hpp"
 
+#include <tf2/convert.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/utils.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+
 #include <limits>
 
 #include <time_utils/time_utils.hpp>
@@ -22,19 +27,20 @@ namespace motion
 namespace motion_testing
 {
 State make_state(
-  float x0,
-  float y0,
-  float heading,
-  float v0,
-  float a0,
-  float turn_rate,
+  Real x0,
+  Real y0,
+  Real heading,
+  Real v0,
+  Real a0,
+  Real turn_rate,
   std::chrono::system_clock::time_point t)
 {
   State start_state{rosidl_runtime_cpp::MessageInitialization::ALL};
-  start_state.state.x = x0;
-  start_state.state.y = y0;
-  start_state.state.heading.real = std::cos(heading / 2.0F);
-  start_state.state.heading.imag = std::sin(heading / 2.0F);
+  start_state.state.pose.position.x = static_cast<double>(x0);
+  start_state.state.pose.position.y = static_cast<double>(y0);
+  tf2::Quaternion quat;
+  quat.setRPY(0.0, 0.0, static_cast<double>(heading));
+  start_state.state.pose.orientation = tf2::toMsg(quat);
   start_state.state.longitudinal_velocity_mps = v0;
   start_state.state.acceleration_mps2 = a0;
   start_state.state.heading_rate_rps = turn_rate;
@@ -50,14 +56,16 @@ State generate_state(Generator & gen)
 {
   State ret{rosidl_runtime_cpp::MessageInitialization::ALL};
   // Parameters with positive and negative supports
-  std::normal_distribution<decltype(ret.state.x)> normal{0.0F, 1.0F};
-  ret.state.x = 10.0F * normal(gen);
-  ret.state.y = 10.0F * normal(gen);
-  ret.state.lateral_velocity_mps = 0.5F * normal(gen);
-  ret.state.acceleration_mps2 = normal(gen);
-  ret.state.heading_rate_rps = 0.1F * normal(gen);
-  ret.state.heading.real = normal(gen);
-  ret.state.heading.imag = normal(gen);
+  std::normal_distribution<decltype(ret.state.pose.position.x)> normal{0.0, 1.0};
+  std::normal_distribution<decltype(ret.state.heading_rate_rps)> normalF{0.0F, 1.0F};
+  ret.state.pose.position.x = 10.0 * normal(gen);
+  ret.state.pose.position.y = 10.0 * normal(gen);
+  ret.state.lateral_velocity_mps = 0.5F * normalF(gen);
+  ret.state.acceleration_mps2 = normalF(gen);
+  ret.state.heading_rate_rps = 0.1F * normalF(gen);
+  tf2::Quaternion quat;
+  quat.setRPY(0.0, 0.0, normal(gen));
+  ret.state.pose.orientation = tf2::toMsg(quat);
   // Parameters with only positive supports
   std::exponential_distribution<decltype(ret.state.longitudinal_velocity_mps)> exponential{1.0F};
   ret.state.longitudinal_velocity_mps = 5.0F * exponential(gen);
@@ -80,12 +88,13 @@ Trajectory constant_trajectory(const State & start_state, const std::chrono::nan
   Trajectory ret{rosidl_runtime_cpp::MessageInitialization::ALL};
   const auto capacity = 100LL;  // TEMP
   ret.points.reserve(capacity);
-  const auto dt_s = std::chrono::duration_cast<std::chrono::duration<float>>(dt).count();
+  const auto dt_s = std::chrono::duration_cast<std::chrono::duration<Real>>(dt).count();
   ret.points.push_back(start_state.state);
   ret.points.back().time_from_start = time_utils::to_message(std::chrono::nanoseconds::zero());
   // quaternion increments
-  const auto dw = std::cos(start_state.state.heading_rate_rps * dt_s / 2.0F);
-  const auto dz = std::sin(start_state.state.heading_rate_rps * dt_s / 2.0F);
+  tf2::Quaternion orientation_increment;
+  orientation_increment.setRPY(
+    0.0, 0.0, static_cast<double>(start_state.state.heading_rate_rps * dt_s));
   // fill out trajectory
   for (auto i = 1LL; i < capacity; ++i) {
     const auto & last_state = ret.points.back();
@@ -93,18 +102,15 @@ Trajectory constant_trajectory(const State & start_state, const std::chrono::nan
     // longitudinal velocity update; lateral assumed fixed
     next_state.longitudinal_velocity_mps += dt_s * next_state.acceleration_mps2;
     // heading update
-    const auto w = (last_state.heading.real * dw) - (last_state.heading.imag * dz);
-    const auto z = (last_state.heading.real * dz) + (last_state.heading.imag * dw);
-    next_state.heading.real = w;
-    next_state.heading.imag = z;
-    // compute heading angles via double angle formulas
-    const auto c = (w + z) * (w - z);
-    const auto s = 2 * w * z;
-    // position update: simplified heading effects
-    const auto ds =
-      dt_s * (last_state.longitudinal_velocity_mps + (0.5F * dt_s * last_state.acceleration_mps2));
-    next_state.x += c * ds;
-    next_state.y += s * ds;
+    tf2::Quaternion last_orientation;
+    tf2::fromMsg(last_state.pose.orientation, last_orientation);
+    next_state.pose.orientation = tf2::toMsg(last_orientation * orientation_increment);
+    // pose.position update: simplified heading effects
+    const auto ds = static_cast<double>(
+      dt_s * (last_state.longitudinal_velocity_mps + (0.5F * dt_s * last_state.acceleration_mps2)));
+    const auto yaw = tf2::getYaw(next_state.pose.orientation);
+    next_state.pose.position.x += std::cos(yaw) * ds;
+    next_state.pose.position.y += std::sin(yaw) * ds;
 
     next_state.time_from_start = time_utils::to_message(dt * i);
 
@@ -120,10 +126,12 @@ Trajectory bad_heading_trajectory(const State & start_state, const std::chrono::
   Trajectory ret{rosidl_runtime_cpp::MessageInitialization::ALL};
   const auto capacity = 100LL;  // TEMP
   ret.points.reserve(capacity);
-  const auto dt_s = std::chrono::duration_cast<std::chrono::duration<float>>(dt).count();
+  const auto dt_s = std::chrono::duration_cast<std::chrono::duration<Real>>(dt).count();
   ret.points.push_back(start_state.state);
-  ret.points.back().heading.real = 0.0F;
-  ret.points.back().heading.imag = 0.0F;
+  ret.points.back().pose.orientation.x = 0.0;
+  ret.points.back().pose.orientation.y = 0.0;
+  ret.points.back().pose.orientation.z = 0.0;
+  ret.points.back().pose.orientation.w = 0.0;
   ret.points.back().heading_rate_rps = 0.0F;
 
   ret.points.back().time_from_start = time_utils::to_message(std::chrono::nanoseconds::zero());
@@ -133,8 +141,8 @@ Trajectory bad_heading_trajectory(const State & start_state, const std::chrono::
     const auto & last_state = ret.points.back();
     decltype(ret.points)::value_type next_state{last_state};
 
-    next_state.x += dt_s * last_state.longitudinal_velocity_mps;
-    next_state.y += 0.0F;
+    next_state.pose.position.x += static_cast<double>(dt_s * last_state.longitudinal_velocity_mps);
+    next_state.pose.position.y += 0.0;
     next_state.time_from_start = time_utils::to_message(dt * i);
 
     ret.points.push_back(next_state);
@@ -208,21 +216,24 @@ void next_state(
 Index progresses_towards_target(
   const Trajectory & trajectory, const Point & target, const Real heading_tolerance)
 {
-  auto last_err = std::numeric_limits<Real>::max();
+  auto last_err = std::numeric_limits<double>::max();
   auto last_heading_err = -std::numeric_limits<Real>::max();
   for (auto idx = Index{}; idx < trajectory.points.size(); ++idx) {
     const auto & pt = trajectory.points[idx];
     // Pose
-    const auto dx = pt.x - target.x;
-    const auto dy = pt.y - target.y;
+    const auto dx = pt.pose.position.x - target.pose.position.x;
+    const auto dy = pt.pose.position.y - target.pose.position.y;
     const auto err = (dx * dx) + (dy * dy);
     if (err > last_err) {
       return idx;
     }
     last_err = err;
-    // Heading: dot product should tend towards 1
-    const auto dot =
-      (pt.heading.real * target.heading.real) + (pt.heading.imag * target.heading.imag);
+    // Orientation: dot product should tend towards 1
+    tf2::Quaternion pt_orientation;
+    tf2::Quaternion target_orientation;
+    tf2::fromMsg(pt.pose.orientation, pt_orientation);
+    tf2::fromMsg(target.pose.orientation, target_orientation);
+    const auto dot = static_cast<Real>(tf2::dot(pt_orientation, target_orientation));
     if (dot < last_heading_err - heading_tolerance) {  // Allow for some error
       return idx;
     }
@@ -244,15 +255,16 @@ Index dynamically_feasible(const Trajectory & trajectory, const Real tolerance)
                      time_utils::from_message(last_pt.time_from_start);
     const auto dt = std::chrono::duration_cast<std::chrono::duration<Real>>(dt_).count();
     const auto dv = last_pt.acceleration_mps2 * dt;
-    const auto ds = (Real{0.5} * dv * dt) + (last_pt.longitudinal_velocity_mps * dt);
+    const auto ds =
+      (Real{0.5} *dv * dt) + (last_pt.longitudinal_velocity_mps * dt);
     const auto dn = last_pt.lateral_velocity_mps * dt;
     const auto dth = last_pt.heading_rate_rps * dt;
     const auto check_fn = [tolerance](auto expect, auto val, auto str) -> bool {
-      bool success = true;
-      if (std::fabs(expect) < Real{1}) {
-        success = std::fabs(expect - val) < tolerance;
+      bool success;
+      if (static_cast<Real>(std::fabs(expect)) < Real{1}) {
+        success = static_cast<Real>(std::fabs(expect - val)) < tolerance;
       } else {
-        success = (std::fabs(expect - val) / expect) < tolerance;
+        success = static_cast<Real>(std::fabs(expect - val) / expect) < tolerance;
       }
       (void)str;
       return success;
@@ -263,31 +275,33 @@ Index dynamically_feasible(const Trajectory & trajectory, const Real tolerance)
       ok = check_fn(v, pt.longitudinal_velocity_mps, "vel") && ok;
     }
     {
-      const auto th = last_pt.heading;
+      tf2::Quaternion th;
+      tf2::fromMsg(last_pt.pose.orientation, th);
+      tf2::Quaternion new_th;
+      tf2::fromMsg(pt.pose.orientation, new_th);
       {
         // Dot product between angles to "check" magnitude of rotation
-        const auto dot =
-          (last_pt.heading.real * pt.heading.real) + (last_pt.heading.imag * pt.heading.imag);
+        const auto dot = static_cast<Real>(tf2::dot(th, new_th));
         ok = check_fn(dot, std::cos(dth), "th_mag") && ok;
         // cross product between angles to check for consistent sign of change
         if (std::fabs(dth) > Real{0.001F}) {
-          const auto cross =
-            (last_pt.heading.real * pt.heading.imag) - (last_pt.heading.imag * pt.heading.real);
+          const auto angle = static_cast<Real>(th.angle(new_th));
           // Negative product -> not pointing in same direction
-          ok = (dth * cross > Real{}) && ok;
+          ok = (dth * angle > Real{}) && ok;
         }
       }
       // Check changes either from current or next heading
-      const auto c = (th.real - th.imag) * (th.real + th.imag);
-      const auto s = Real{2} * th.real * th.imag;
-      const auto c2 = (pt.heading.real - pt.heading.imag) * (pt.heading.real + pt.heading.imag);
-      const auto s2 = Real{2} * pt.heading.real * pt.heading.imag;
-      const auto dx = (ds * c) - (dn * s);
-      const auto dx2 = (ds * c2) - (dn * s2);
-      ok = (check_fn(last_pt.x + dx, pt.x, "x") || check_fn(last_pt.x + dx2, pt.x, "x2")) && ok;
-      const auto dy = (s * ds) + (dn * c);
-      const auto dy2 = (s2 * ds) + (dn * c2);
-      ok = (check_fn(last_pt.y + dy, pt.y, "y") || check_fn(last_pt.y + dy2, pt.y, "y2")) && ok;
+      const tf2::Vector3 ds_dn(static_cast<double>(ds), static_cast<double>(dn), 0.0);
+      const tf2::Transform tf(th);
+      const tf2::Vector3 delta = tf * ds_dn;
+      const tf2::Transform tf2(new_th);
+      const tf2::Vector3 delta2 = tf2 * ds_dn;
+      ok = (check_fn(last_pt.pose.position.x + delta.getX(), pt.pose.position.x, "x") ||
+            check_fn(last_pt.pose.position.x + delta2.getX(), pt.pose.position.x, "x2")) &&
+           ok;
+      ok = (check_fn(last_pt.pose.position.y + delta.getY(), pt.pose.position.y, "y") ||
+            check_fn(last_pt.pose.position.y + delta2.getY(), pt.pose.position.y, "y2")) &&
+           ok;
     }
     if (!ok) {
       return idx;
