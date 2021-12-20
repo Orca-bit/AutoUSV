@@ -89,7 +89,6 @@ void ControllerBaseNode::init(
   using rclcpp::QoS;
   // Subs
   using SubAllocT = rclcpp::SubscriptionOptionsWithAllocator<std::allocator<void>>;
-  // TODO(#825): Remove ifdef
   // Since Foxy, static transforms are not published periodically but instead with
   // a StaticBroadcasterQoS which has transient_local durability. If the subscriber
   // isn't also transient_local, it will often miss the static transform message.
@@ -116,6 +115,7 @@ void ControllerBaseNode::init(
     m_diagnostic_pub = create_publisher<Diagnostic>(diagnostic_topic, QoS{10}, PubAllocT{});
   }
 }
+
 ////////////////////////////////////////////////////////////////////////////////
 void ControllerBaseNode::retry_compute()
 {
@@ -177,13 +177,13 @@ bool ControllerBaseNode::try_compute(const State & state)
     return true;
   }
   if (m_controller->get_reference_trajectory().header.frame_id.empty()) {
-    // TODO(Takamasa Horibe): Enable with RCLCPP_WARN_THROTTLE after Foxy
+    // TODO(Autoware Takamasa Horibe): Enable with RCLCPP_WARN_THROTTLE after Foxy
     // RCLCPP_WARN(
     //   get_logger(),
     //   "try_compute: empty trajectory frame, possibly uninitialized, deferring");
     return false;
   }
-  // TODO(c.ho) these should honestly be two functions
+  // TODO(Autoware c.ho) these should honestly be two functions
   // Transform state into same frame as trajectory
   const auto traj_frame = m_controller->get_reference_trajectory().header.frame_id;
   const auto state_frame = state.header.frame_id;

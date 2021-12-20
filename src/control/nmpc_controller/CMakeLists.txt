@@ -7,20 +7,8 @@ find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 
 set(acados_include $ENV{ACADOS_SOURCE_DIR}/include)
-set(acados_lib $ENV{ACADOS_SOURCE_DIR}/lib)
+# set(acados_lib $ENV{ACADOS_SOURCE_DIR}/lib)
 set(acados_c_code_gen ${PROJECT_SOURCE_DIR}/scripts/c_generated_code)
-
-include_directories(
-        ${acados_c_code_gen}
-        ${acados_include}
-        ${acados_include}/blasfeo/include
-        ${acados_include}/hpipm/include
-        ${acados_include}/acados
-)
-
-link_directories(
-        ${acados_c_code_gen}
-)
 
 # Build library
 ament_auto_add_library(${PROJECT_NAME} SHARED
@@ -30,9 +18,17 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
         src/nmpc_controller/debug.cpp
         )
 
+target_include_directories(${PROJECT_NAME} PUBLIC
+        ${acados_c_code_gen}
+        ${acados_include}
+        ${acados_include}/blasfeo/include
+        ${acados_include}/hpipm/include
+        # ${acados_include}/acados
+        )
+
 target_link_libraries(${PROJECT_NAME}
         ${acados_c_code_gen}/libacados_ocp_solver_autousv.so
-        ${acados_lib}/libacados.so
+        # ${acados_lib}/libacados.so
         )
 
 ### Test
@@ -49,5 +45,8 @@ if (BUILD_TESTING)
     target_link_libraries(nmpc_controller_unit_tests ${PROJECT_NAME})
     add_dependencies(nmpc_controller_unit_tests ${PROJECT_NAME})
 endif ()
+
+install(DIRECTORY scripts/c_generated_code DESTINATION share/)
+install(FILES ${acados_c_code_gen}/libacados_ocp_solver_autousv.so DESTINATION lib/)
 
 ament_auto_package()

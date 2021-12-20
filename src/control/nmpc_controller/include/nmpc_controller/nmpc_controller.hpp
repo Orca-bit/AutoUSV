@@ -2,25 +2,18 @@
 #define NMPC_CONTROLLER__NMPC_CONTROLLER_HPP_
 
 // acados
-#include <acados/ocp_nlp/ocp_nlp_constraints_bgh.h>
-#include <acados/ocp_nlp/ocp_nlp_cost_ls.h>
-#include <acados/utils/print.h>
 #include <acados_c/external_function_interface.h>
 #include <acados_c/ocp_nlp_interface.h>
-// blasfeo
-#include <blasfeo/include/blasfeo_d_aux.h>
-#include <blasfeo/include/blasfeo_d_aux_ext_dep.h>
 // AutoUSV specific
 #include <acados_solver_autousv.h>
-#include <autousv_model/autousv_model.h>
-
+// standard
 #include <ostream>
 #include <string>
-
+// AutoUSV
 #include <controller_common/controller_base.hpp>
 #include <nmpc_controller/config.hpp>
 #include <nmpc_controller/visibility_control.hpp>
-
+// AutoUSV msgs
 #include <usv_msgs/msg/trajectory.hpp>
 #include <usv_msgs/msg/vehicle_control_command.hpp>
 #include <usv_msgs/msg/vehicle_kinematic_state.hpp>

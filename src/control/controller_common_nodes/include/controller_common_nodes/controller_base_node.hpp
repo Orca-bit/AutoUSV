@@ -106,7 +106,7 @@ private:
   rclcpp::Publisher<Command>::SharedPtr m_command_pub{};
   rclcpp::Publisher<Diagnostic>::SharedPtr m_diagnostic_pub{};
   tf2::BufferCore m_tf_buffer{tf2::BUFFER_CORE_DEFAULT_CACHE_TIME};
-  // TODO(c.ho) diagnostics
+  // TODO(Autoware c.ho) diagnostics
   ControllerPtr m_controller{nullptr};
   std::list<State> m_uncomputed_states{};
 };  // class ControllerBaseNode
