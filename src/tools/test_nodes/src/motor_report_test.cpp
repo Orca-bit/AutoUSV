@@ -20,16 +20,22 @@ MotorReport1TestNode::MotorReport1TestNode() : Node("motor_report1_test")
 
 void MotorReport1TestNode::init()
 {
-  auto cb = [this](usv_msgs::msg::MotorReport1::SharedPtr msg) {
+  auto cb1 = [this](usv_msgs::msg::MotorReport1::SharedPtr msg) {
     RCLCPP_INFO_STREAM(
       get_logger(),
-      "direction(0: forward, 1: backward): " << msg->rotate_direction
+      "left_motor direction(0: forward, 1: backward): " << msg->rotate_direction
+                                             << "power: " << msg->motor_power);
+  };
+  auto cb2 = [this](usv_msgs::msg::MotorReport1::SharedPtr msg) {
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "right motor direction(0: forward, 1: backward): " << msg->rotate_direction
                                              << "power: " << msg->motor_power);
   };
   m_left_sub =
-    create_subscription<usv_msgs::msg::MotorReport1>("left_motor_report1", rclcpp::QoS{10U}, cb);
+    create_subscription<usv_msgs::msg::MotorReport1>("left_motor_report1", rclcpp::QoS{10U}, cb1);
   m_right_sub =
-    create_subscription<usv_msgs::msg::MotorReport1>("right_motor_report1", rclcpp::QoS{10U}, cb);
+    create_subscription<usv_msgs::msg::MotorReport1>("right_motor_report1", rclcpp::QoS{10U}, cb2);
 }
 
 int main(int argc, char * argv[])
