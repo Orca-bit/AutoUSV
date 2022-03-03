@@ -12,7 +12,7 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
         src/gnss_interface.cpp
         src/gnss_interface_node.cpp)
 
-set(NODE_NAME vehicle_interface_exe)
+set(NODE_NAME gnss_interface_exe)
 ament_auto_add_executable(${NODE_NAME}
         src/gnss_interface_main.cpp)
 

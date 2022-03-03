@@ -1,0 +1,4 @@
+/**:
+  ros__parameters:
+    cycle_time_ms: 10
+    gnss_usb_name: "/dev/ttyUSB0"
