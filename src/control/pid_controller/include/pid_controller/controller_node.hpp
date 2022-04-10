@@ -5,7 +5,7 @@
 #ifndef PID_CONTROLLER_CONTROLLER_NODE_HPP
 #define PID_CONTROLLER_CONTROLLER_NODE_HPP
 
-#include "pid_controller//controller.hpp"
+#include "pid_controller/controller.hpp"
 #include <rclcpp/rclcpp.hpp>
 
 #include <usv_msgs/msg/vehicle_control_command.hpp>

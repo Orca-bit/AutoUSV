@@ -81,6 +81,6 @@ void ControllerNode::on_error(std::exception_ptr eptr)
   } catch (const std::exception & e) {
     RCLCPP_ERROR(get_logger(), e.what());
   } catch (...) {
-    RCLCPP_ERROR(get_logger(), "VehicleInterface: Unknown error!");
+    RCLCPP_ERROR(get_logger(), "PidController: Unknown error!");
   }
 }
