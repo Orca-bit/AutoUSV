@@ -1,5 +1,7 @@
 #include "vehicle_interface/platform_interface.hpp"
 
+#include <iostream>
+
 #include <rclcpp/logging.hpp>
 
 namespace usv
@@ -11,25 +13,28 @@ namespace vehicle_interface
 
 PlatformInterface::PlatformInterface(
   const std::string & left_thruster_usb_name, const std::string & right_thruster_usb_name)
-: m_left_thruster_usb_name{left_thruster_usb_name},
-  m_right_thruster_usb_name{right_thruster_usb_name},
-  m_ios{new io_service{}},
+: m_ios{new io_service{}},
   m_work{new io_service::work{ios()}},
-  m_left_usb{ios()},
-  m_right_usb{ios()}
+  m_left_usb{left_thruster_usb_name, serial_port{ios()}},
+  m_right_usb{right_thruster_usb_name, serial_port{ios()}}
 {
-  m_left_buffer.resize(REPORT_DATA_BYTES * 10);
-  m_right_buffer.resize(REPORT_DATA_BYTES * 10);
-  m_left_usb.open(left_thruster_usb_name);
-  m_left_usb.set_option(serial_port_base::baud_rate(DEFAULT_BAUD_RATE));
-  m_right_usb.open(right_thruster_usb_name);
-  m_right_usb.set_option(serial_port_base::baud_rate(DEFAULT_BAUD_RATE));
+  m_left_usb.buffer.resize(REPORT_DATA_BYTES * 10);
+  m_right_usb.buffer.resize(REPORT_DATA_BYTES * 10);
+  m_left_usb.usb_port.open(left_thruster_usb_name);
+  m_left_usb.usb_port.set_option(serial_port_base::baud_rate(DEFAULT_BAUD_RATE));
+  m_right_usb.usb_port.open(right_thruster_usb_name);
+  m_right_usb.usb_port.set_option(serial_port_base::baud_rate(DEFAULT_BAUD_RATE));
 }
 
 bool8_t PlatformInterface::send_control_command(const VehicleControlCommand & msg)
 {
-  while (!normal_phase_receive()) {
+  auto left_ready = bool8_t{false};
+  auto right_ready = bool8_t{false};
+  while (!left_ready && !right_ready) {
     RCLCPP_WARN_STREAM(rclcpp::get_logger("485 receiver"), "not in normal phase");
+    auto res = normal_phase_receive();
+    left_ready = std::get<0>(res);
+    right_ready = std::get<1>(res);
   }
 
   auto data0 = [](auto & cmd) -> uint8_t { return 0 <= cmd ? 0x01 : 0x00; };
@@ -57,20 +62,23 @@ bool8_t PlatformInterface::send_control_command(const VehicleControlCommand & ms
   const auto right_to_send = data_to_send(right_data0, right_data1, right_xor);
 
   using boost::asio::buffer;
-  const auto left_has_sent =
-    m_left_usb.write_some(buffer(left_to_send.data(), left_to_send.size()));
-  const auto right_has_sent =
-    m_right_usb.write_some(buffer(right_to_send.data(), right_to_send.size()));
-
-  if (left_has_sent != THROTTLE_DATA_BYTES || right_has_sent != THROTTLE_DATA_BYTES) {
-    return false;
-  }
-  // preserve the rotation direction
-  {
+  if (left_ready) {
+    const auto left_has_sent =
+      m_left_usb.usb_port.write_some(buffer(left_to_send.data(), left_to_send.size()));
+    if (left_has_sent != THROTTLE_DATA_BYTES) {
+      return false;
+    }
     if (msg.left_cmd >= 0) {
       m_left_direction = RotateDirection::FORWARD;
     } else {
       m_left_direction = RotateDirection::BACKWARD;
+    }
+  }
+  if (right_ready) {
+    const auto right_has_sent =
+      m_right_usb.usb_port.write_some(buffer(right_to_send.data(), right_to_send.size()));
+    if (right_has_sent != THROTTLE_DATA_BYTES) {
+      return false;
     }
     if (msg.right_cmd >= 0) {
       m_right_direction = RotateDirection::FORWARD;
@@ -91,19 +99,19 @@ bool8_t PlatformInterface::send_control_command(const HighLevelControlCommand &)
 
 std::string PlatformInterface::get_left_usb_port_name() const noexcept
 {
-  return m_left_thruster_usb_name;
+  return m_left_usb.port_name;
 }
 
 std::string PlatformInterface::get_right_usb_port_name() const noexcept
 {
-  return m_right_thruster_usb_name;
+  return m_right_usb.port_name;
 }
 
 PlatformInterface::~PlatformInterface()
 {
   waitForExit();
-  m_left_usb.close();
-  m_right_usb.close();
+  m_left_usb.usb_port.close();
+  m_right_usb.usb_port.close();
 }
 
 void PlatformInterface::waitForExit()
@@ -143,92 +151,47 @@ std::experimental::optional<MotorReport2> PlatformInterface::get_right_motor_rep
   return m_right_motor_report2;
 }
 
-bool8_t PlatformInterface::normal_phase_receive()
+std::tuple<bool8_t, bool8_t> PlatformInterface::normal_phase_receive()
 {
   using boost::asio::read;
   auto left_has_received = read(
-    m_left_usb,
-    mutable_buffer(m_left_buffer.data(), m_left_buffer.size()),
+    m_left_usb.usb_port,
+    mutable_buffer(m_left_usb.buffer.data(), m_left_usb.buffer.size()),
     boost::asio::transfer_at_least(2 * LEAST_RECEIVED_DATA_BYTES));
   auto right_has_received = read(
-    m_right_usb,
-    mutable_buffer(m_right_buffer.data(), m_right_buffer.size()),
+    m_right_usb.usb_port,
+    mutable_buffer(m_right_usb.buffer.data(), m_right_usb.buffer.size()),
     boost::asio::transfer_at_least(2 * LEAST_RECEIVED_DATA_BYTES));
 
   auto left_cmd_type = uint8_t{};
   auto right_cmd_type = uint8_t{};
 
-  auto left_valid_data_begin = m_left_buffer.cbegin();
-  auto right_valid_data_begin = m_right_buffer.cbegin();
-  auto left_valid_data_end = m_left_buffer.cbegin();
-  auto right_valid_data_end = m_right_buffer.cbegin();
+  const auto left_check =
+    check_valid(m_left_usb, static_cast<sizeT>(left_has_received), left_cmd_type);
+  const auto right_check =
+    check_valid(m_right_usb, static_cast<sizeT>(right_has_received), right_cmd_type);
 
-  auto check_valid = [this,
-                      &left_has_received,
-                      &right_has_received,
-                      &left_cmd_type,
-                      &right_cmd_type,
-                      &left_valid_data_begin,
-                      &right_valid_data_begin,
-                      &left_valid_data_end,
-                      &right_valid_data_end](USBPorts port) -> bool8_t {
-    auto ptr = port == USBPorts::LEFT ? m_left_buffer.cbegin() : m_right_buffer.cbegin();
-    const auto end = ptr + (USBPorts::LEFT == port ? static_cast<sizeT>(left_has_received)
-                                                   : static_cast<sizeT>(right_has_received));
-    auto valid_end = std::experimental::optional<iterT>{};
-    bool8_t valid = false;
-    while (!valid) {
-      ptr = std::find(ptr, end, HEAD);
-      if (ptr > end - LEAST_RECEIVED_DATA_BYTES) {
-        break;
-      }
-      ptr += 1;
-      if (ptr != end && *ptr != ADDRESS) continue;
-      auto data_len = static_cast<sizeT>(*(ptr + 1));
-      if (ptr + 3 + data_len < end && *(ptr + 3 + data_len) == END) {
-        auto xor_check = *(ptr + 1);
-        for (sizeT i = 0; i < data_len; ++i) {
-          xor_check ^= (*(ptr + 2 + i));
-        }
-        if (xor_check == *(ptr + 2 + data_len)) {
-          valid = true;
-          valid_end.emplace(ptr + 2 + data_len);
-        }
-      }
-    }
-    if (valid) {
-      if (port == USBPorts::LEFT) {
-        left_cmd_type = *(ptr + 2);
-        left_valid_data_begin = ptr + 3;
-        left_valid_data_end = valid_end.value();
-      } else if (port == USBPorts::RIGHT) {
-        right_cmd_type = *(ptr + 2);
-        right_valid_data_begin = ptr + 3;
-        right_valid_data_end = valid_end.value();
-      }
-    }
-    return valid;
-  };
-
-  if (!check_valid(USBPorts::LEFT) && !check_valid(USBPorts::RIGHT)) {
+  if (!left_check && !right_check) {
     RCLCPP_WARN_STREAM(rclcpp::get_logger("485 receiver"), "no valid data in this read");
-    return false;
+    return std::make_tuple(false, false);
   }
 
-  if (
-    (left_cmd_type == MOTOR_REPORT_CMD1 || left_cmd_type == MOTOR_REPORT_CMD2) &&
-    (right_cmd_type == MOTOR_REPORT_CMD1 || right_cmd_type == MOTOR_REPORT_CMD2)) {
+  bool8_t left_normal = (left_cmd_type == MOTOR_REPORT_CMD1 || left_cmd_type == MOTOR_REPORT_CMD2);
+  bool8_t right_normal =
+    (right_cmd_type == MOTOR_REPORT_CMD1 || right_cmd_type == MOTOR_REPORT_CMD2);
+
+  if (left_normal || right_normal) {
     if (left_cmd_type == MOTOR_REPORT_CMD1) {
-      update_motor_report1(USBPorts::LEFT, left_valid_data_begin, left_valid_data_end);
+      update_motor_report1(m_left_usb, USBPorts::LEFT);
     } else if (left_cmd_type == MOTOR_REPORT_CMD2) {
-      update_motor_report2(USBPorts::LEFT, left_valid_data_begin, left_valid_data_end);
+      update_motor_report2(m_right_usb, USBPorts::LEFT);
     }
     if (right_cmd_type == MOTOR_REPORT_CMD1) {
-      update_motor_report1(USBPorts::RIGHT, right_valid_data_begin, right_valid_data_end);
+      update_motor_report1(m_right_usb, USBPorts::RIGHT);
     } else if (right_cmd_type == MOTOR_REPORT_CMD2) {
-      update_motor_report2(USBPorts::RIGHT, right_valid_data_begin, right_valid_data_end);
+      update_motor_report2(m_right_usb, USBPorts::RIGHT);
     }
-    return true;
+    return std::make_tuple(left_normal, right_normal);
   }
 
   if (left_cmd_type == 0x22) {
@@ -246,7 +209,7 @@ bool8_t PlatformInterface::normal_phase_receive()
   } else {
     RCLCPP_WARN_STREAM(rclcpp::get_logger("485 receiver"), "unknown right_cmd_type");
   }
-  return false;
+  return std::make_tuple(false, false);
 }
 
 bool8_t PlatformInterface::answer_22(USBPorts port)
@@ -255,9 +218,9 @@ bool8_t PlatformInterface::answer_22(USBPorts port)
   auto buf = buffer(ANSWER_22.data(), ANSWER_22.size());
   size_t has_send = 0;
   if (port == USBPorts::LEFT) {
-    has_send = m_left_usb.write_some(buf);
+    has_send = m_left_usb.usb_port.write_some(buf);
   } else if (port == USBPorts::RIGHT) {
-    has_send = m_right_usb.write_some(buf);
+    has_send = m_right_usb.usb_port.write_some(buf);
   }
   return has_send == ANSWER_22.size();
 }
@@ -268,15 +231,17 @@ bool8_t PlatformInterface::answer_26(USBPorts port)
   auto buf = buffer(ANSWER_26.data(), ANSWER_26.size());
   size_t has_send = 0;
   if (port == USBPorts::LEFT) {
-    has_send = m_left_usb.write_some(buf);
+    has_send = m_left_usb.usb_port.write_some(buf);
   } else if (port == USBPorts::RIGHT) {
-    has_send = m_right_usb.write_some(buf);
+    has_send = m_right_usb.usb_port.write_some(buf);
   }
   return has_send == ANSWER_26.size();
 }
 
-void PlatformInterface::update_motor_report1(USBPorts port, iterT cbegin, iterT cend)
+void PlatformInterface::update_motor_report1(UsbPortStruct & port, USBPorts port_name)
 {
+  auto cbegin = port.valid_begin;
+  auto cend = port.valid_end;
   if (cend != cbegin + 12) {
     RCLCPP_WARN_STREAM(rclcpp::get_logger("485 receiver"), "wrong report1 data_len");
     return;
@@ -335,7 +300,7 @@ void PlatformInterface::update_motor_report1(USBPorts port, iterT cbegin, iterT 
       (static_cast<uint16_t>(*(cbegin + 10)) << 8) + static_cast<uint16_t>(*(cbegin + 11)));
   }
 
-  if (USBPorts::LEFT == port) {
+  if (USBPorts::LEFT == port_name) {
     if (RotateDirection::FORWARD == m_left_direction) {
       msg.rotate_direction = MotorReport1::FORWARD;
     } else if (RotateDirection::BACKWARD == m_left_direction) {
@@ -343,7 +308,7 @@ void PlatformInterface::update_motor_report1(USBPorts port, iterT cbegin, iterT 
     }
     m_left_motor_report1.emplace(msg);
     m_left_direction = RotateDirection::NOT_SET;
-  } else if (USBPorts::RIGHT == port) {
+  } else if (USBPorts::RIGHT == port_name) {
     if (RotateDirection::FORWARD == m_right_direction) {
       msg.rotate_direction = MotorReport1::FORWARD;
     } else if (RotateDirection::BACKWARD == m_right_direction) {
@@ -354,8 +319,10 @@ void PlatformInterface::update_motor_report1(USBPorts port, iterT cbegin, iterT 
   }
 }
 
-void PlatformInterface::update_motor_report2(USBPorts port, iterT cbegin, iterT cend)
+void PlatformInterface::update_motor_report2(UsbPortStruct & port, USBPorts port_name)
 {
+  auto cbegin = port.valid_begin;
+  auto cend = port.valid_end;
   if (cend != cbegin + 12) {
     RCLCPP_WARN_STREAM(rclcpp::get_logger("485 receiver"), "wrong report2 data_len");
     return;
@@ -400,9 +367,9 @@ void PlatformInterface::update_motor_report2(USBPorts port, iterT cbegin, iterT 
     msg.recharge_time = static_cast<reChargeTime_T>(
       (static_cast<uint16_t>(*(cbegin + 10)) << 8) + static_cast<uint16_t>(*(cbegin + 11)));
   }
-  if (USBPorts::LEFT == port) {
+  if (USBPorts::LEFT == port_name) {
     m_left_motor_report2.emplace(msg);
-  } else if (USBPorts::RIGHT == port) {
+  } else if (USBPorts::RIGHT == port_name) {
     m_right_motor_report2.emplace(msg);
   }
 }
@@ -430,6 +397,39 @@ builtin_interfaces::msg::Time PlatformInterface::get_time_stamp()
 {
   using time_utils::to_message;
   return to_message(std::chrono::system_clock::now());
+}
+
+bool8_t PlatformInterface::check_valid(UsbPortStruct & port, sizeT received_len, uint8_t & cmd_type)
+{
+  auto ptr = port.buffer.cbegin();
+  const auto end = ptr + received_len;
+  auto valid_end = std::experimental::optional<iterT>{};
+  bool8_t valid = false;
+  while (!valid) {
+    ptr = std::find(ptr, end, HEAD);
+    if (ptr > end - LEAST_RECEIVED_DATA_BYTES) {
+      break;
+    }
+    ptr += 1;
+    if (ptr != end && *ptr != ADDRESS) continue;
+    auto data_len = static_cast<sizeT>(*(ptr + 1));
+    if (ptr + 3 + data_len < end && *(ptr + 3 + data_len) == END) {
+      auto xor_check = *(ptr + 1);
+      for (sizeT i = 0; i < data_len; ++i) {
+        xor_check ^= (*(ptr + 2 + i));
+      }
+      if (xor_check == *(ptr + 2 + data_len)) {
+        valid = true;
+        valid_end.emplace(ptr + 2 + data_len);
+      }
+    }
+  }
+  if (valid) {
+    cmd_type = *(ptr + 2);
+    port.valid_begin = ptr + 3;
+    port.valid_end = valid_end.value();
+  }
+  return valid;
 }
 
 }  // namespace vehicle_interface

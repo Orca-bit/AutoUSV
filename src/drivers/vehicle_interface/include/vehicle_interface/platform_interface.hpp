@@ -53,6 +53,16 @@ constexpr auto ANSWER_26 = std::array<uint8_t, 7>{HEAD, ADDRESS, 0x02, 0x44, 0x2
 enum class USBPorts { LEFT, RIGHT };
 enum class RotateDirection { FORWARD, BACKWARD, NOT_SET };
 
+struct VEHICLE_INTERFACE_LOCAL UsbPortStruct {
+  using bufferT = std::vector<uint8_t>;
+  using iterT = bufferT::const_iterator;
+  std::string port_name;
+  serial_port usb_port;
+  bufferT buffer{};
+  iterT valid_begin{nullptr};
+  iterT valid_end{nullptr};
+};
+
 class VEHICLE_INTERFACE_PUBLIC PlatformInterface
 {
 public:
@@ -82,25 +92,22 @@ public:
   void reset_right_motor_report1() noexcept;
   void reset_right_motor_report2() noexcept;
 
-  bool8_t normal_phase_receive();
+  std::tuple<bool8_t, bool8_t> normal_phase_receive();
 
   io_service & ios() const;
   void waitForExit();
 
-  using bufferT = std::vector<uint8_t>;
-  using sizeT = bufferT::const_iterator::difference_type;
-  using iterT = bufferT::const_iterator;
+  using iterT = UsbPortStruct::iterT;
+  using sizeT = iterT::difference_type;
 
+  bool8_t check_valid(UsbPortStruct& port, sizeT received_len, uint8_t& cmd_type);
   bool8_t answer_22(USBPorts port);
   bool8_t answer_26(USBPorts port);
-  void update_motor_report1(USBPorts port, iterT cbegin, iterT cend);
-  void update_motor_report2(USBPorts port, iterT cbegin, iterT cend);
+  void update_motor_report1(UsbPortStruct& port, USBPorts port_name);
+  void update_motor_report2(UsbPortStruct& port, USBPorts port_name);
 
 private:
   static builtin_interfaces::msg::Time get_time_stamp();
-
-  std::string m_left_thruster_usb_name;
-  std::string m_right_thruster_usb_name;
 
   std::shared_ptr<io_service> m_ios;
   std::shared_ptr<io_service::work> m_work;
@@ -110,14 +117,12 @@ private:
   std::experimental::optional<MotorReport1> m_right_motor_report1{};
   std::experimental::optional<MotorReport2> m_right_motor_report2{};
 
-  bufferT m_left_buffer{};
-  bufferT m_right_buffer{};
   // the feedback from motor not including the direction, need to preserve
   RotateDirection m_left_direction{RotateDirection::NOT_SET};
   RotateDirection m_right_direction{RotateDirection::NOT_SET};
 
-  serial_port m_left_usb;
-  serial_port m_right_usb;
+  UsbPortStruct m_left_usb;
+  UsbPortStruct m_right_usb;
 };  // class PlatformInterface
 }  // namespace vehicle_interface
 }  // namespace drivers

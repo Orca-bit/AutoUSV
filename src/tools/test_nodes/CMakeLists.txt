@@ -4,9 +4,13 @@ project(test_nodes)
 find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 
-set(NODE_NAME motor_report_test_exe)
-ament_auto_add_executable(${NODE_NAME}
+set(NODE_NAME1 motor_report_test_exe)
+ament_auto_add_executable(${NODE_NAME1}
   src/motor_report_test.cpp)
+
+set(NODE_NAME2 gnss_test_exe)
+ament_auto_add_executable(${NODE_NAME2}
+        src/gnss_test.cpp)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

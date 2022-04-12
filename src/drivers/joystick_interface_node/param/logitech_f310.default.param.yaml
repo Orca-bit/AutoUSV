@@ -8,8 +8,8 @@
       right_cmd: 3
     # Scale and offset of axes: val = (raw * scale) + offset
     axis_scale:
-      left_cmd: 127.0
-      right_cmd: 127.0
+      left_cmd: 50.0
+      right_cmd: 50.0
     axis_offset:
       left_cmd: 0.0
       right_cmd: 0.0

@@ -1,2 +1,6 @@
+build/
+install/
+log/
 src/**/*-debug/
 src/**/.idea/
+src/**/_*/

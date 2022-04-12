@@ -61,7 +61,7 @@ private:
 
   std::string m_usb_port_name;
   serial_port m_port;
-  char buffer[512]{};
+  char m_buffer[512]{};
 
   std::shared_ptr<io_service> m_ios;
   std::shared_ptr<io_service::work> m_work;

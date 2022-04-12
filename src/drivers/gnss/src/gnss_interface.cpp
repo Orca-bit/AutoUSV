@@ -90,12 +90,12 @@ gnss::State gnss::GnssInterface::work()
 {
   while (!(m_linear_velocity_ready && m_angular_velocity_ready)) {
     read_data();
-    std::string str{buffer};
+    std::string str{m_buffer};
     convert(split(str.substr(str.find('$'))));
     const std::chrono::duration<double> diff =
       std::max(m_linear_velocity_received_time, m_angular_velocity_received_time) -
       std::min(m_linear_velocity_received_time, m_angular_velocity_received_time);
-    if (diff.count() > 5e-2) {
+    if (diff.count() > 1e-1) {
       m_linear_velocity_ready = false;
       m_angular_velocity_ready = false;
     }
@@ -107,7 +107,7 @@ gnss::State gnss::GnssInterface::work()
 void gnss::GnssInterface::read_data()
 {
   using boost::asio::read;
-  read(m_port, mutable_buffer(buffer, 512), boost::asio::transfer_at_least(256));
+  read(m_port, mutable_buffer(m_buffer, 512), boost::asio::transfer_at_least(256));
 }
 
 std::string gnss::GnssInterface::get_port_name() const noexcept
