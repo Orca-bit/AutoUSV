@@ -3,6 +3,7 @@
     command_topic: "ctrl_cmd"
     state_topic: "vehicle_kinematic_state"
     trajectory_topic: "trajectory"
+    env_forces_topic: "env_estimation"
     tf_topic: "tf"
     static_tf_topic: "tf_static"
     diagnostic_topic: "control_diagnostic"

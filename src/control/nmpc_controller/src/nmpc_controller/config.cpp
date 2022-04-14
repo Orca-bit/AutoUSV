@@ -67,6 +67,9 @@ bool Config::do_interpolate() const noexcept
 {
   return m_do_interpolate;
 }
+void Config::set_env_forces(const EnvironmentForces& env_forces) {
+  m_env_forces = env_forces;
+}
 }  // namespace nmpc_controller
 }  // namespace control
 }  // namespace motion

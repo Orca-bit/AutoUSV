@@ -74,6 +74,9 @@ public:
 
   Index get_compute_iterations() const override;
 
+  /// set environment forces
+  void set_env_forces(const EnvironmentForces& env_forces) override;
+
 protected:
   /// Checks trajectory
   bool check_new_trajectory(const Trajectory & trajectory) const override;

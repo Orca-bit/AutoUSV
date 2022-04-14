@@ -107,17 +107,14 @@ NmpcControllerNode::NmpcControllerNode(const std::string & name, const std::stri
   const auto control_lookahead_ms =
     std::chrono::milliseconds(declare_parameter("controller.control_lookahead_ms").get<int64_t>());
 
-  // NMHE callback function
-  auto nmhe_cb = [this](const usv_msgs::msg::EnvEstimation::SharedPtr msg) {
-    this->m_env_forces = *msg;
-  };
-
-  // NMHE subscription
-  m_env_est_sub =
-    create_subscription<usv_msgs::msg::EnvEstimation>("nmhe_estimation", rclcpp::QoS{10U}, nmhe_cb);
+  using usv_msgs::msg::EnvEstimation;
+  auto init_env_forces = EnvEstimation{};
+  init_env_forces.tau_env_u = 0;
+  init_env_forces.tau_env_v = 0;
+  init_env_forces.tau_env_r = 0;
 
   auto controller = std::make_unique<nmpc_controller::NmpcController>(nmpc_controller::Config{
-    m_env_forces,
+    init_env_forces,
     limits,
     vehicle_param,
     behavior,
@@ -158,6 +155,7 @@ NmpcControllerNode::NmpcControllerNode(
   const std::string & tf_topic,
   const std::string & trajectory_topic,
   const std::string & diagnostic_topic,
+  const std::string & env_forces_topic,
   const std::string & static_tf_topic,
   const nmpc_controller::Config & config)
 : ControllerBaseNode{
@@ -168,6 +166,7 @@ NmpcControllerNode::NmpcControllerNode(
     tf_topic,
     trajectory_topic,
     diagnostic_topic,
+    env_forces_topic,
     static_tf_topic}
 {
   set_controller(std::make_unique<nmpc_controller::NmpcController>(config));

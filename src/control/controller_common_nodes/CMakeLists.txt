@@ -20,16 +20,16 @@ if(BUILD_TESTING)
   # Linters
   ament_lint_auto_find_test_dependencies()
   # Unit test
-  ament_add_gtest(controller_common_nodes_unit_tests
-    test/bad_cases.cpp
-    test/error_handling.cpp
-    test/gtest_main.cpp
-    test/sanity_check.cpp
-    test/transform.cpp)
-  usv_set_compile_options(controller_common_nodes_unit_tests)
-  target_compile_options(controller_common_nodes_unit_tests PRIVATE -Wno-double-promotion)
-  target_link_libraries(controller_common_nodes_unit_tests ${PROJECT_NAME})
-  add_dependencies(controller_common_nodes_unit_tests ${PROJECT_NAME})
+  # ament_add_gtest(controller_common_nodes_unit_tests
+  #   test/bad_cases.cpp
+  #   test/error_handling.cpp
+  #   test/gtest_main.cpp
+  #   test/sanity_check.cpp
+  #   test/transform.cpp)
+  # usv_set_compile_options(controller_common_nodes_unit_tests)
+  # target_compile_options(controller_common_nodes_unit_tests PRIVATE -Wno-double-promotion)
+  # target_link_libraries(controller_common_nodes_unit_tests ${PROJECT_NAME})
+  # add_dependencies(controller_common_nodes_unit_tests ${PROJECT_NAME})
 endif()
 
 ament_auto_package()

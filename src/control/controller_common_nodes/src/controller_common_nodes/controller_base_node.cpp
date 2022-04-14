@@ -43,6 +43,7 @@ ControllerBaseNode::ControllerBaseNode(const std::string & name, const std::stri
     declare_parameter("tf_topic", ParameterValue{""}, ParameterDescriptor{}).get<string>(),
     declare_parameter("static_tf_topic", ParameterValue{""}, ParameterDescriptor{}).get<string>(),
     declare_parameter("trajectory_topic", ParameterValue{""}, ParameterDescriptor{}).get<string>(),
+    declare_parameter("env_forces_topic", ParameterValue{""}, ParameterDescriptor{}).get<string>(),
     declare_parameter("diagnostic_topic", ParameterValue{""}, ParameterDescriptor{}).get<string>());
 }
 
@@ -55,10 +56,18 @@ ControllerBaseNode::ControllerBaseNode(
   const std::string & tf_topic,
   const std::string & trajectory_topic,
   const std::string & diagnostic_topic,
+  const std::string & env_forces_topic,
   const std::string & static_tf_topic)
 : Node{name, ns, rclcpp::NodeOptions{rcl_get_default_allocator()}}
 {
-  init(command_topic, state_topic, tf_topic, static_tf_topic, trajectory_topic, diagnostic_topic);
+  init(
+    command_topic,
+    state_topic,
+    tf_topic,
+    static_tf_topic,
+    trajectory_topic,
+    env_forces_topic,
+    diagnostic_topic);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -68,6 +77,7 @@ void ControllerBaseNode::init(
   const std::string & tf_topic,
   const std::string & static_tf_topic,
   const std::string & trajectory_topic,
+  const std::string & env_forces_topic,
   const std::string & diagnostic_topic)
 {
   // Common error checking
@@ -107,6 +117,13 @@ void ControllerBaseNode::init(
     static_tf_qos,
     [this](const TFMessage::SharedPtr msg) { on_static_tf(msg); },
     SubAllocT{});
+  if (!env_forces_topic.empty()) {
+    m_env_forces_sub = create_subscription<EnvironmentForces>(
+      env_forces_topic,
+      QoS{10},
+      [this](const EnvironmentForces::SharedPtr msg) { on_env_forces(msg); },
+      SubAllocT{});
+  }
   // Pubs
   using PubAllocT = rclcpp::PublisherOptionsWithAllocator<std::allocator<void>>;
   m_command_pub = create_publisher<Command>(command_topic, QoS{10}, PubAllocT{});
@@ -276,6 +293,11 @@ void ControllerBaseNode::on_bad_compute(std::exception_ptr eptr)  // NOLINT
   } catch (const std::exception & e) {
     RCLCPP_WARN(get_logger(), e.what());
   }
+}
+
+void ControllerBaseNode::on_env_forces(const EnvironmentForces::SharedPtr & msg)
+{
+  m_controller->set_env_forces(*msg);
 }
 
 }  // namespace controller_common_nodes

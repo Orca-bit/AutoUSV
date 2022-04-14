@@ -21,15 +21,15 @@ if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
   # Unit test
-  apex_test_tools_add_gtest(controller_common_unit_tests
-    test/gtest_main.cpp
-    test/behavior.cpp
-    test/misc.cpp
-    test/state_tracking.cpp)
-  usv_set_compile_options(controller_common_unit_tests)
-  target_compile_options(controller_common_unit_tests PRIVATE -Wno-double-promotion)
-  target_link_libraries(controller_common_unit_tests ${PROJECT_NAME})
-  add_dependencies(controller_common_unit_tests ${PROJECT_NAME})
+  # apex_test_tools_add_gtest(controller_common_unit_tests
+  #   test/gtest_main.cpp
+  #   test/behavior.cpp
+  #   test/misc.cpp
+  #   test/state_tracking.cpp)
+  # usv_set_compile_options(controller_common_unit_tests)
+  # target_compile_options(controller_common_unit_tests PRIVATE -Wno-double-promotion)
+  # target_link_libraries(controller_common_unit_tests ${PROJECT_NAME})
+  # add_dependencies(controller_common_unit_tests ${PROJECT_NAME})
 endif()
 
 ament_auto_package()

@@ -33,14 +33,13 @@ public:
     const std::string & tf_topic,
     const std::string & trajectory_topic,
     const std::string & diagnostic_topic,
+    const std::string & env_forces_topic,
     const std::string & static_tf_topic,
     const nmpc_controller::Config & config);
 
 private:
   rclcpp::Publisher<usv_msgs::msg::Trajectory>::SharedPtr m_debug_traj_pub{};
-  rclcpp::Subscription<usv_msgs::msg::EnvEstimation>::SharedPtr m_env_est_sub{};
   rclcpp::TimerBase::SharedPtr m_debug_timer{};
-  nmpc_controller::EnvironmentForces m_env_forces{};
 };  // class NmpcControllerNode
 }  // namespace nmpc_controller_nodes
 }  // namespace control

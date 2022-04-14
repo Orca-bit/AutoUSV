@@ -87,6 +87,12 @@ void NmpcController::set_config(const Config & config)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+void NmpcController::set_env_forces(const EnvironmentForces & env_forces) {
+  m_config.set_env_forces(env_forces);
+  apply_config(m_config);
+}
+
+////////////////////////////////////////////////////////////////////////////////
 Command NmpcController::compute_command_impl(const State & state)
 {
   const auto current_idx = get_current_state_temporal_index();

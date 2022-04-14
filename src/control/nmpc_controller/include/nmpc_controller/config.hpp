@@ -57,6 +57,7 @@ public:
   std::chrono::nanoseconds sample_period_tolerance() const noexcept;
   std::chrono::nanoseconds control_lookahead_duration() const noexcept;
   bool do_interpolate() const noexcept;
+  void set_env_forces(const EnvironmentForces & env_forces);
 
 private:
   EnvironmentForces m_env_forces;

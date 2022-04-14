@@ -38,6 +38,7 @@ namespace control
 {
 namespace controller_common_nodes
 {
+using controller_common::EnvironmentForces;
 using controller_common::Command;
 using controller_common::Diagnostic;
 using controller_common::State;
@@ -60,6 +61,7 @@ public:
     const std::string & tf_topic,
     const std::string & trajectory_topic,
     const std::string & diagnostic_topic,
+    const std::string & env_forces_topic,
     const std::string & static_tf_topic = "static_tf");
 
   virtual ~ControllerBaseNode() noexcept = default;
@@ -84,6 +86,7 @@ private:
     const std::string & tf_topic,
     const std::string & static_tf_topic,
     const std::string & trajectory_topic,
+    const std::string & env_forces_topic,
     const std::string & diagnostic_topic);
   // Callbacks, note passing smart pointers by ref is fine if you're not using ownership
   // semantics:
@@ -93,22 +96,24 @@ private:
   CONTROLLER_COMMON_NODES_LOCAL void on_static_tf(const TFMessage::SharedPtr & msg);
   CONTROLLER_COMMON_NODES_LOCAL void on_trajectory(const Trajectory::SharedPtr & msg);
   CONTROLLER_COMMON_NODES_LOCAL void on_state(const State::SharedPtr & msg);
+  CONTROLLER_COMMON_NODES_LOCAL void on_env_forces(const EnvironmentForces::SharedPtr & msg);
   // Main computation, false if failure (due to missing tf?)
   CONTROLLER_COMMON_NODES_LOCAL bool try_compute(const State & state);
   // Try to compute control commands from old states in the context of new trajectories and tfs
   CONTROLLER_COMMON_NODES_LOCAL void retry_compute();
 
-
   rclcpp::Subscription<State>::SharedPtr m_state_sub{};
   rclcpp::Subscription<TFMessage>::SharedPtr m_tf_sub{};
   rclcpp::Subscription<TFMessage>::SharedPtr m_static_tf_sub{};
   rclcpp::Subscription<Trajectory>::SharedPtr m_trajectory_sub{};
+  rclcpp::Subscription<EnvironmentForces>::SharedPtr m_env_forces_sub{};
   rclcpp::Publisher<Command>::SharedPtr m_command_pub{};
   rclcpp::Publisher<Diagnostic>::SharedPtr m_diagnostic_pub{};
   tf2::BufferCore m_tf_buffer{tf2::BUFFER_CORE_DEFAULT_CACHE_TIME};
   // TODO(Autoware c.ho) diagnostics
   ControllerPtr m_controller{nullptr};
   std::list<State> m_uncomputed_states{};
+
 };  // class ControllerBaseNode
 }  // namespace controller_common_nodes
 }  // namespace control

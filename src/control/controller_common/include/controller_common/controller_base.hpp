@@ -38,6 +38,7 @@ namespace controller_common
 {
 using motion_common::Command;
 using motion_common::Diagnostic;
+using motion_common::EnvironmentForces;
 using motion_common::Index;
 using motion_common::Point;
 using motion_common::Real;
@@ -111,6 +112,9 @@ public:
   virtual Index get_compute_iterations() const;
 
   const BehaviorConfig & get_base_config() const noexcept;
+
+  /// set environment forces
+  virtual void set_env_forces(const EnvironmentForces & env_forces) = 0;
 
 protected:
   /// Given a new trajectory, do some input validation: If the trajectory

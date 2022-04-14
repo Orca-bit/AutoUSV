@@ -35,16 +35,16 @@ if(BUILD_TESTING)
   # Linters
   ament_lint_auto_find_test_dependencies()
 
-  find_package(autoware_testing REQUIRED)
-  add_smoke_test(${PROJECT_NAME} ${NODE_NAME})
+  # find_package(autoware_testing REQUIRED)
+  # add_smoke_test(${PROJECT_NAME} ${NODE_NAME})
 
-  # Unit test
-  ament_add_gtest(nmpc_controller_nodes_unit_tests
-    test/gtest_main.cpp
-    test/sanity_check.cpp)
-  # usv_set_compile_options(nmpc_controller_nodes_unit_tests)
-  target_link_libraries(nmpc_controller_nodes_unit_tests nmpc_controller_node)
-  add_dependencies(nmpc_controller_nodes_unit_tests nmpc_controller_node)
+  # # Unit test
+  # ament_add_gtest(nmpc_controller_nodes_unit_tests
+  #   test/gtest_main.cpp
+  #   test/sanity_check.cpp)
+  # # usv_set_compile_options(nmpc_controller_nodes_unit_tests)
+  # target_link_libraries(nmpc_controller_nodes_unit_tests nmpc_controller_node)
+  # add_dependencies(nmpc_controller_nodes_unit_tests nmpc_controller_node)
 endif()
 
 ament_auto_package(INSTALL_TO_SHARE param)
