@@ -151,6 +151,7 @@ std::experimental::optional<MotorReport2> PlatformInterface::get_right_motor_rep
   return m_right_motor_report2;
 }
 
+/// return left and right separately
 std::tuple<bool8_t, bool8_t> PlatformInterface::normal_phase_receive()
 {
   using boost::asio::read;

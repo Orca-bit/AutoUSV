@@ -14,10 +14,13 @@ namespace planning
 namespace astar_planner
 {
 
+/// request cost-map
 using usv_msgs::action::PlannerCostmap;
+/// publish trajectory
 using usv_msgs::msg::Trajectory;
 
 
+/// do pose transform
 geometry_msgs::msg::Pose transformPose(
   const geometry_msgs::msg::Pose & pose, const geometry_msgs::msg::TransformStamped & transform)
 {
@@ -42,9 +45,12 @@ astar_search::AstarWaypoints adjustWaypointsSize(
     // input_length subtraction to handle max_length multiplicity
     auto elements_to_skip_per_step = static_cast<int64_t>(std::floor(input_length / max_length));
     // must be +1 to actually skip an element
+    // for example: input_length = 70, max_length = 50, elements_to_skip_per_step = 1, which
+    // actually not to skip
     auto stride = elements_to_skip_per_step + 1;
 
     auto waypoints_iter = astar_waypoints.waypoints.cbegin();
+    // total number of points need to skip
     auto points_to_skip = static_cast<int64_t>(input_length - max_length);
     int64_t skipped_points_count = 0;
     // subtract by elements_to_skip_per_step to prevent from skipping too many points
@@ -54,12 +60,14 @@ astar_search::AstarWaypoints adjustWaypointsSize(
       skipped_points_count += elements_to_skip_per_step;
     }
 
+    // complete skips, if there are some points rest
     // copy rest of waypoints
     resized_vector.waypoints.insert(
       resized_vector.waypoints.end(), waypoints_iter, astar_waypoints.waypoints.cend());
     return resized_vector;
   }
 
+  // if input size < max size, just return (a copy)
   return astar_waypoints;
 }
 
@@ -77,6 +85,7 @@ usv_msgs::msg::Trajectory createTrajectory(
 
     point.pose.position.x = awp.pose.pose.position.x;
     point.pose.position.y = awp.pose.pose.position.y;
+    // z is not matter
     point.pose.position.z =
       current_pose.pose.position.z;  // height = const, not important for 2D implementation
     point.pose.orientation = awp.pose.pose.orientation;
@@ -84,6 +93,8 @@ usv_msgs::msg::Trajectory createTrajectory(
     // switch sign by forward/backward
     // velocity = const
     point.longitudinal_velocity_mps = (awp.is_back ? -1.0f : 1.0f) * velocity;
+    // the transverse velocity and angular velocity are not to set (default value: 0)
+    // for controller reference, this does make sense
 
     trajectory.points.push_back(point);
   }
@@ -128,12 +139,15 @@ AstarPlannerNode::AstarPlannerNode(const rclcpp::NodeOptions & node_options)
       std::max(astar_param_.maximum_turning_radius, astar_param_.minimum_turning_radius);
     auto tr_size = declare_parameter("turning_radius_size", 11);
     throw_if_negative(tr_size, "turning_radius_size");
+    /// Number of levels of discretization between minimum and maximum turning radius [-]
     astar_param_.turning_radius_size = static_cast<size_t>(tr_size);
 
     // search configs
     auto th_size = declare_parameter("theta_size", 48);
     throw_if_negative(th_size, "theta_size");
+    /// Number of possible headings, discretized between <0, 2pi> [-]
     astar_param_.theta_size = static_cast<size_t>(th_size);
+    // TODO: Check the usage
     astar_param_.reverse_weight = declare_parameter("reverse_weight", 2.00);
     astar_param_.goal_lateral_tolerance = declare_parameter("goal_lateral_tolerance", 0.25);
     astar_param_.goal_longitudinal_tolerance =
@@ -142,6 +156,7 @@ AstarPlannerNode::AstarPlannerNode(const rclcpp::NodeOptions & node_options)
 
     // costmap configs
     astar_param_.obstacle_threshold = declare_parameter("obstacle_threshold", 100);
+    // TODO: Check the usage
     astar_param_.distance_heuristic_weight = declare_parameter("distance_heuristic_weight", 1.0);
   }
 
@@ -150,7 +165,8 @@ AstarPlannerNode::AstarPlannerNode(const rclcpp::NodeOptions & node_options)
     astar_ = std::make_unique<astar_search::AstarSearch>(astar_param_);
   }
 
-  // Publisher
+  // debug Publisher
+  // the actual path is delivered by client-server protocol
   {
     rclcpp::QoS qos{1};
     qos.transient_local();  // latch
@@ -364,12 +380,12 @@ void AstarPlannerNode::reset()
 }
 
 geometry_msgs::msg::TransformStamped AstarPlannerNode::getTransform(
-  const std::string & from, const std::string & to)
+  const std::string & target, const std::string & source)
 {
   geometry_msgs::msg::TransformStamped tf;
   try {
-    tf =
-      tf_buffer_->lookupTransform(from, to, rclcpp::Time(0), rclcpp::Duration::from_seconds(1.0));
+    tf = tf_buffer_->lookupTransform(
+      target, source, rclcpp::Time(0), rclcpp::Duration::from_seconds(1.0));
   } catch (const tf2::TransformException & ex) {
     RCLCPP_ERROR(get_logger(), "%s", ex.what());
   }

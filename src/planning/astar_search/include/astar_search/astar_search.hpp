@@ -123,7 +123,7 @@ struct ASTAR_SEARCH_PUBLIC AstarParam
   bool use_back;
   /// Indicate if solutions should be exclusively behind the goal
   bool only_behind_solutions;
-  /// Planning time limit [msec]
+  /// Planning time limit [ms]
   double time_limit;
 
   // robot configs
