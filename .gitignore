@@ -4,3 +4,4 @@ log/
 src/**/*-debug/
 src/**/.idea/
 src/**/_*/
+src/**/c_generated*/
