@@ -3,6 +3,7 @@
 //
 
 #include "gnss/gnss_interface_node.hpp"
+#include <geometry_msgs/msg/transform_stamped.hpp>
 
 #include <utility>
 
@@ -22,6 +23,7 @@ GnssInterfaceNode::GnssInterfaceNode(
   const auto count_ms =
     std::chrono::milliseconds{declare_parameter("cycle_time_ms").get<int64_t>()};
   init("gnss_report", count_ms);
+  m_br_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 }
 
 void GnssInterfaceNode::set_interface(std::unique_ptr<GnssInterface> && interface) noexcept
@@ -51,7 +53,9 @@ void GnssInterfaceNode::init(
 
 void GnssInterfaceNode::read_and_pub()
 {
-  m_state_pub->publish(m_interface->work());
+  const auto state = m_interface->work();
+  m_state_pub->publish(state);
+  pub_tf(state);
 }
 
 void GnssInterfaceNode::on_error(std::exception_ptr eptr)
@@ -63,6 +67,19 @@ void GnssInterfaceNode::on_error(std::exception_ptr eptr)
   } catch (...) {
     RCLCPP_ERROR(logger(), "GnssInterface: Unknown error!");
   }
+}
+
+void GnssInterfaceNode::pub_tf(const State & state) {
+  geometry_msgs::msg::TransformStamped t;
+  t.header = state.header;
+  t.child_frame_id = "base_link";
+
+  t.transform.translation.x = state.state.pose.position.x;
+  t.transform.translation.y = state.state.pose.position.y;
+  t.transform.translation.z = state.state.pose.position.z;
+  t.transform.rotation = state.state.pose.orientation;
+
+  m_br_->sendTransform(t);
 }
 
 }  // namespace gnss

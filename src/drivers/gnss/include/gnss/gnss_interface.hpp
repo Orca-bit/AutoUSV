@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "gnss/visibility_control.hpp"
+#include "gnss/geo_pos_conv.hpp"
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/read.hpp>
 #include <boost/asio/serial_port.hpp>
@@ -49,12 +50,14 @@ private:
 
   GNSS_INTERFACE_LOCAL void read_data();
 
-  GNSS_INTERFACE_LOCAL std::vector<std::string> split(const std::string & str);
+  static GNSS_INTERFACE_LOCAL std::vector<std::string> split(const std::string & str);
   GNSS_INTERFACE_LOCAL void convert(const std::vector<std::string> & nmea);
 
   State m_state{rosidl_runtime_cpp::MessageInitialization::ALL};
   bool m_linear_velocity_ready{false};
   bool m_angular_velocity_ready{false};
+
+  std::unique_ptr<GeoPosConv> m_conv{std::make_unique<GeoPosConv>()};
 
   std::chrono::time_point<std::chrono::system_clock> m_linear_velocity_received_time{};
   std::chrono::time_point<std::chrono::system_clock> m_angular_velocity_received_time{};

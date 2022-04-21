@@ -6,8 +6,10 @@
 #define GNSS_GNSS_INTERFACE_NODE_HPP
 
 #include "gnss/gnss_interface.hpp"
+#include "gnss/geo_pos_conv.hpp"
 #include "gnss/visibility_control.hpp"
 #include <rclcpp/rclcpp.hpp>
+#include <tf2_ros/transform_broadcaster.h>
 
 namespace usv
 {
@@ -25,6 +27,7 @@ public:
 private:
   void init(const std::string& topic_name, const std::chrono::nanoseconds & cycle_time);
   void read_and_pub();
+  void pub_tf(const State & state);
   void on_error(std::exception_ptr eptr);
   rclcpp::Logger logger() const noexcept;
 
@@ -33,6 +36,7 @@ private:
 
   rclcpp::TimerBase::SharedPtr m_read_timer{nullptr};
   rclcpp::Publisher<State>::SharedPtr m_state_pub{nullptr};
+  std::unique_ptr<tf2_ros::TransformBroadcaster> m_br_{nullptr};
 
 };
 
