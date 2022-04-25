@@ -40,21 +40,23 @@ public:
   /// \param[in] options An rclcpp::NodeOptions object
   VehicleInterfaceNode(const std::string & node_name, const rclcpp::NodeOptions & options);
 
+  ~VehicleInterfaceNode() override;
+
 
   /// Set the vehicle-specific PlatformInterface
-  void set_interface(std::unique_ptr<PlatformInterface> && interface) noexcept;
+  void set_interface(std::shared_ptr<PlatformInterface> && interface) noexcept;
   /// Get access to logger
   rclcpp::Logger logger() const noexcept;
 
   /// Error handling behavior for when sending a control command has failed, default is throwing an
   /// exception, which is caught and turned into a change in the NodeState to ERROR
-  void on_control_send_failure();
+  static void on_control_send_failure();
   /// Error handling behavior for when receiving data from the vehicle platform has timed out,
   /// default is throwing an exception, which is caught and turned into a change in the NodeState to
   /// ERROR
-  void on_read_timeout();
+  static void on_read_timeout();
   /// Handle exception thrown in main loop. Default behavior is to set NodeState to ERROR
-  void on_error(std::exception_ptr eptr);
+  void on_error(std::exception_ptr eptr) const;
 
 private:
   // Helper function called in constructors
@@ -72,6 +74,7 @@ private:
   VEHICLE_INTERFACE_LOCAL void read_and_publish();
   // Core loop for different input commands. Specialized differently for each topic type
   template <typename T> VEHICLE_INTERFACE_LOCAL void on_command_message(const T & msg);
+  static void send_cmd_loop();
 
   rclcpp::TimerBase::SharedPtr m_read_timer{nullptr};
   rclcpp::Publisher<MotorReport1>::SharedPtr m_left_motor_report1{nullptr};
@@ -84,9 +87,15 @@ private:
 
   mpark::variant<HighLevelSub, BasicSub> m_command_sub{};
 
-  std::unique_ptr<PlatformInterface> m_interface;
+  // std::unique_ptr<PlatformInterface> m_interface;
   std::chrono::system_clock::time_point m_last_command_stamp{};
   std::chrono::nanoseconds m_cycle_time{};
+
+  std::thread m_th;
+
+  static VehicleControlCommand::SharedPtr m_msg;
+  static std::shared_ptr<PlatformInterface> interface_;
+  static std::mutex mut_;
 };  // class VehicleInterfaceNode
 
 }  // namespace vehicle_interface

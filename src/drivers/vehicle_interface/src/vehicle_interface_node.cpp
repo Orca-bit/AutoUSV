@@ -21,6 +21,10 @@ namespace drivers
 namespace vehicle_interface
 {
 
+VehicleControlCommand::SharedPtr VehicleInterfaceNode::m_msg;
+std::mutex VehicleInterfaceNode::mut_;
+std::shared_ptr<PlatformInterface> VehicleInterfaceNode::interface_;
+
 ////////////////////////////////////////////////////////////////////////////////
 VehicleInterfaceNode::VehicleInterfaceNode(
   const std::string & node_name, const rclcpp::NodeOptions & options)
@@ -36,7 +40,7 @@ VehicleInterfaceNode::VehicleInterfaceNode(
     return std::chrono::milliseconds{count_ms};
   };
 
-  set_interface(std::make_unique<PlatformInterface>(
+  set_interface(std::make_shared<PlatformInterface>(
     topic_num_matches_from_param("left_thruster_usb_name").topic,
     topic_num_matches_from_param("right_thruster_usb_name").topic));
 
@@ -48,17 +52,17 @@ VehicleInterfaceNode::VehicleInterfaceNode(
     TopicNumMatches{"left_motor_report2"},
     TopicNumMatches{"right_motor_report2"},
     time("cycle_time_ms"));
+  m_th = std::thread(send_cmd_loop);
 }
 
-
-void VehicleInterfaceNode::set_interface(std::unique_ptr<PlatformInterface> && interface) noexcept
+void VehicleInterfaceNode::set_interface(std::shared_ptr<PlatformInterface> && interface) noexcept
 {
-  m_interface = std::forward<std::unique_ptr<PlatformInterface> &&>(interface);
+  interface_ = std::forward<std::shared_ptr<PlatformInterface> &&>(interface);
   RCLCPP_INFO_STREAM(
     logger(),
-    "left_thruster_usb_name: " << m_interface->get_left_usb_port_name()
+    "left_thruster_usb_name: " << interface_->get_left_usb_port_name()
                                << ", right_thruster_usb_name: "
-                               << m_interface->get_right_usb_port_name());
+                               << interface_->get_right_usb_port_name());
 }
 
 rclcpp::Logger VehicleInterfaceNode::logger() const noexcept
@@ -75,7 +79,7 @@ template <>
 void VehicleInterfaceNode::on_command_message(const usv_msgs::msg::HighLevelControlCommand & msg)
 {
   /// not implemented
-  if (!m_interface->send_control_command(msg)) {
+  if (!interface_->send_control_command(msg)) {
     on_control_send_failure();
   }
 }
@@ -95,9 +99,11 @@ void VehicleInterfaceNode::on_command_message(const usv_msgs::msg::VehicleContro
   if (dt > std::chrono::nanoseconds::zero()) {
     m_last_command_stamp = stamp;
     // Send
-    if (!m_interface->send_control_command(msg)) {
-      on_control_send_failure();
-    }
+    // if (!m_interface->send_control_command(msg)) {
+    //   on_control_send_failure();
+    // }
+    std::lock_guard<std::mutex> lock{mut_};
+    *m_msg = msg;
   } else {
     RCLCPP_WARN(logger(), "Vehicle interface time did not increase, skipping");
   }
@@ -181,7 +187,7 @@ void VehicleInterfaceNode::on_read_timeout()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void VehicleInterfaceNode::on_error(std::exception_ptr eptr)
+void VehicleInterfaceNode::on_error(std::exception_ptr eptr) const
 {
   try {
     std::rethrow_exception(eptr);
@@ -196,33 +202,50 @@ void VehicleInterfaceNode::on_error(std::exception_ptr eptr)
 void VehicleInterfaceNode::read_and_publish()
 {
   {
-    auto left_motor_report1 = m_interface->get_left_motor_report_1();
+    auto left_motor_report1 = interface_->get_left_motor_report_1();
     if (left_motor_report1) {
       m_left_motor_report1->publish(left_motor_report1.value());
-      m_interface->reset_left_motor_report1();
+      interface_->reset_left_motor_report1();
     }
   }
   {
-    auto right_motor_report1 = m_interface->get_right_motor_report_1();
+    auto right_motor_report1 = interface_->get_right_motor_report_1();
     if (right_motor_report1) {
       m_right_motor_report1->publish(right_motor_report1.value());
-      m_interface->reset_right_motor_report1();
+      interface_->reset_right_motor_report1();
     }
   }
   {
-    auto left_motor_report2 = m_interface->get_left_motor_report_2();
+    auto left_motor_report2 = interface_->get_left_motor_report_2();
     if (left_motor_report2) {
       m_left_motor_report2->publish(left_motor_report2.value());
-      m_interface->reset_left_motor_report2();
+      interface_->reset_left_motor_report2();
     }
   }
   {
-    auto right_motor_report2 = m_interface->get_right_motor_report_2();
+    auto right_motor_report2 = interface_->get_right_motor_report_2();
     if (right_motor_report2) {
       m_right_motor_report2->publish(right_motor_report2.value());
-      m_interface->reset_right_motor_report2();
+      interface_->reset_right_motor_report2();
     }
   }
+}
+
+void VehicleInterfaceNode::send_cmd_loop()
+{
+  while (true) {
+    if (m_msg.get() == nullptr || !mut_.try_lock()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds{10});
+    }
+    auto msg = *m_msg;
+    mut_.unlock();
+    interface_->send_control_command(msg);
+  }
+}
+
+VehicleInterfaceNode::~VehicleInterfaceNode()
+{
+  m_th.detach();
 }
 
 }  // namespace vehicle_interface
