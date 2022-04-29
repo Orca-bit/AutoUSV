@@ -32,10 +32,13 @@ bool8_t PlatformInterface::send_control_command(const VehicleControlCommand & ms
   auto right_ready = bool8_t{false};
   while (!left_ready && !right_ready) {
     RCLCPP_WARN_STREAM(rclcpp::get_logger("485 receiver"), "not in normal phase");
+    std::cout << "before call" << '\n';
     auto res = normal_phase_receive();
+    std::cout << "after call" << '\n';
     left_ready = std::get<0>(res);
     right_ready = std::get<1>(res);
   }
+  std::cout << "normal phase" << '\n';
 
   auto data0 = [](auto & cmd) -> uint8_t { return 0 <= cmd ? 0x01 : 0x00; };
   auto data1 = [](auto cmd) -> uint8_t {

@@ -7,6 +7,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <thread>
 #include <unordered_set>
 
 #include <mpark_variant_vendor/variant.hpp>
@@ -29,6 +30,7 @@ struct TopicNumMatches
   std::string topic;
 };  // struct TopicNumMatches
 
+
 /// A node which receives commands and sends them to the vehicle platform, and publishes
 /// reports from the vehicle platform
 class VEHICLE_INTERFACE_PUBLIC VehicleInterfaceNode : public ::rclcpp::Node
@@ -36,12 +38,9 @@ class VEHICLE_INTERFACE_PUBLIC VehicleInterfaceNode : public ::rclcpp::Node
 public:
   /// ROS 2 parameter constructor
   /// \param[in] node_name The name for the node
-  /// \param[in] features Vector of features supported by this vehicle interface
-  /// \param[in] options An rclcpp::NodeOptions object
-  VehicleInterfaceNode(const std::string & node_name, const rclcpp::NodeOptions & options);
+  VehicleInterfaceNode(std::string&& node_name);
 
   ~VehicleInterfaceNode() override;
-
 
   /// Set the vehicle-specific PlatformInterface
   void set_interface(std::shared_ptr<PlatformInterface> && interface) noexcept;
@@ -74,7 +73,7 @@ private:
   VEHICLE_INTERFACE_LOCAL void read_and_publish();
   // Core loop for different input commands. Specialized differently for each topic type
   template <typename T> VEHICLE_INTERFACE_LOCAL void on_command_message(const T & msg);
-  static void send_cmd_loop();
+  // static void send_cmd_loop(std::shared_ptr<PlatformInterface> interface);
 
   rclcpp::TimerBase::SharedPtr m_read_timer{nullptr};
   rclcpp::Publisher<MotorReport1>::SharedPtr m_left_motor_report1{nullptr};
@@ -93,9 +92,6 @@ private:
 
   std::thread m_th;
 
-  static VehicleControlCommand::SharedPtr m_msg;
-  static std::shared_ptr<PlatformInterface> interface_;
-  static std::mutex mut_;
 };  // class VehicleInterfaceNode
 
 }  // namespace vehicle_interface

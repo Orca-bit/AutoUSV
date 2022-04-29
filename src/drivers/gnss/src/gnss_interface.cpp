@@ -49,7 +49,7 @@ void gnss::GnssInterface::convert(const std::vector<std::string> & nmea)
         m_conv->set_plane_degree(lon_deg, lat_deg);
       }
       m_conv->set_llh_degree(lon_deg, lat_deg, h);
-      m_state.header.frame_id = "map";
+      m_state.header.frame_id = "odom";
       m_state.state.pose.position.x = m_conv->x();
       m_state.state.pose.position.y = m_conv->y();
       m_state.state.pose.position.z = m_conv->z();

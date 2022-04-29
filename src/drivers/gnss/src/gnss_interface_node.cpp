@@ -22,7 +22,7 @@ GnssInterfaceNode::GnssInterfaceNode(
   set_interface(std::make_unique<GnssInterface>(param));
   const auto count_ms =
     std::chrono::milliseconds{declare_parameter("cycle_time_ms").get<int64_t>()};
-  init("gnss_report", count_ms);
+  init("gnss_odom", count_ms);
   m_br_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 }
 

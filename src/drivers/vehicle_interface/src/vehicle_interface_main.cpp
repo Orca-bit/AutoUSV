@@ -9,7 +9,7 @@ int32_t main(int argc, char ** argv)
 
   using usv::drivers::vehicle_interface::VehicleInterfaceNode;
   const auto nd =
-    std::make_shared<VehicleInterfaceNode>("vehicle_interface", rclcpp::NodeOptions{});
+    std::make_shared<VehicleInterfaceNode>("vehicle_interface");
 
   rclcpp::spin(nd);
 
