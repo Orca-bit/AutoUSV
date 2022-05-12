@@ -3,9 +3,10 @@
 //
 
 #include "gnss/gnss_interface_node.hpp"
-#include <geometry_msgs/msg/transform_stamped.hpp>
 
 #include <utility>
+
+#include <geometry_msgs/msg/transform_stamped.hpp>
 
 namespace usv
 {
@@ -18,10 +19,12 @@ GnssInterfaceNode::GnssInterfaceNode(
   const std::string & node_name, const rclcpp::NodeOptions & options)
 : Node(node_name, options)
 {
-  const auto param = declare_parameter("gnss_usb_name").get<std::string>();
-  set_interface(std::make_unique<GnssInterface>(param));
+  const auto port_name = declare_parameter("gnss_usb_name").get<std::string>();
+  // const auto port_name = std::string{"/dev/ttyUSB0"};
+  set_interface(std::make_unique<GnssInterface>(port_name));
   const auto count_ms =
     std::chrono::milliseconds{declare_parameter("cycle_time_ms").get<int64_t>()};
+  // const auto count_ms = std::chrono::milliseconds{1};
   init("gnss_odom", count_ms);
   m_br_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 }
@@ -55,6 +58,14 @@ void GnssInterfaceNode::read_and_pub()
 {
   const auto state = m_interface->work();
   m_state_pub->publish(state);
+  if (!m_timer) {
+    m_timer = std::chrono::system_clock::now();
+  } else {
+    const auto last_time = *m_timer;
+    m_timer = std::chrono::system_clock::now();
+    const auto dt = std::chrono::duration_cast<std::chrono::milliseconds>(*m_timer - last_time);
+    std::cout << dt.count() << "ms" << '\n';
+  }
   pub_tf(state);
 }
 
@@ -69,7 +80,8 @@ void GnssInterfaceNode::on_error(std::exception_ptr eptr)
   }
 }
 
-void GnssInterfaceNode::pub_tf(const State & state) {
+void GnssInterfaceNode::pub_tf(const State & state)
+{
   geometry_msgs::msg::TransformStamped t;
   t.header = state.header;
   t.child_frame_id = "base_link";

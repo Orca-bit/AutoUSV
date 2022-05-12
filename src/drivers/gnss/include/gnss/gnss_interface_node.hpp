@@ -11,6 +11,8 @@
 #include <rclcpp/rclcpp.hpp>
 #include <tf2_ros/transform_broadcaster.h>
 
+#include <experimental/optional>
+
 namespace usv
 {
 namespace drivers
@@ -37,6 +39,8 @@ private:
   rclcpp::TimerBase::SharedPtr m_read_timer{nullptr};
   rclcpp::Publisher<State>::SharedPtr m_state_pub{nullptr};
   std::unique_ptr<tf2_ros::TransformBroadcaster> m_br_{nullptr};
+
+  std::experimental::optional<std::chrono::system_clock::time_point> m_timer{};
 
 };
 

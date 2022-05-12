@@ -33,7 +33,7 @@ using State = usv_msgs::msg::VehicleKinematicState;
 class GNSS_INTERFACE_PUBLIC GnssInterface
 {
 public:
-  explicit GnssInterface(std::string usb_port);
+  explicit GnssInterface(const std::string& usb_port);
   ~GnssInterface();
 
   GnssInterface(const GnssInterface &) = delete;
@@ -62,12 +62,12 @@ private:
   std::chrono::time_point<std::chrono::system_clock> m_linear_velocity_received_time{};
   std::chrono::time_point<std::chrono::system_clock> m_angular_velocity_received_time{};
 
-  std::string m_usb_port_name;
-  serial_port m_port;
-  char m_buffer[512]{};
+  char m_buffer[256]{};
 
   std::shared_ptr<io_service> m_ios;
   std::shared_ptr<io_service::work> m_work;
+  serial_port m_port;
+  std::string m_usb_port_name;
 };
 }  // namespace gnss
 }  // namespace drivers
