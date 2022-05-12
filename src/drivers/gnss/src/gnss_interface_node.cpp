@@ -58,14 +58,14 @@ void GnssInterfaceNode::read_and_pub()
 {
   const auto state = m_interface->work();
   m_state_pub->publish(state);
-  if (!m_timer) {
-    m_timer = std::chrono::system_clock::now();
-  } else {
-    const auto last_time = *m_timer;
-    m_timer = std::chrono::system_clock::now();
-    const auto dt = std::chrono::duration_cast<std::chrono::milliseconds>(*m_timer - last_time);
-    std::cout << dt.count() << "ms" << '\n';
-  }
+  // if (!m_timer) {
+  //   m_timer = std::chrono::system_clock::now();
+  // } else {
+  //   const auto last_time = *m_timer;
+  //   m_timer = std::chrono::system_clock::now();
+  //   const auto dt = std::chrono::duration_cast<std::chrono::milliseconds>(*m_timer - last_time);
+  //   std::cout << dt.count() << "ms" << '\n';
+  // }
   pub_tf(state);
 }
 

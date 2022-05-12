@@ -5,13 +5,14 @@
 #ifndef GNSS_GNSS_INTERFACE_NODE_HPP
 #define GNSS_GNSS_INTERFACE_NODE_HPP
 
-#include "gnss/gnss_interface.hpp"
-#include "gnss/geo_pos_conv.hpp"
-#include "gnss/visibility_control.hpp"
-#include <rclcpp/rclcpp.hpp>
 #include <tf2_ros/transform_broadcaster.h>
 
-#include <experimental/optional>
+#include "gnss/geo_pos_conv.hpp"
+#include "gnss/gnss_interface.hpp"
+#include "gnss/visibility_control.hpp"
+#include <rclcpp/rclcpp.hpp>
+
+// #include <experimental/optional>
 
 namespace usv
 {
@@ -27,7 +28,7 @@ public:
   void set_interface(std::unique_ptr<GnssInterface> && interface) noexcept;
 
 private:
-  void init(const std::string& topic_name, const std::chrono::nanoseconds & cycle_time);
+  void init(const std::string & topic_name, const std::chrono::nanoseconds & cycle_time);
   void read_and_pub();
   void pub_tf(const State & state);
   void on_error(std::exception_ptr eptr);
@@ -40,8 +41,7 @@ private:
   rclcpp::Publisher<State>::SharedPtr m_state_pub{nullptr};
   std::unique_ptr<tf2_ros::TransformBroadcaster> m_br_{nullptr};
 
-  std::experimental::optional<std::chrono::system_clock::time_point> m_timer{};
-
+  // std::experimental::optional<std::chrono::system_clock::time_point> m_timer{};
 };
 
 }  // namespace gnss
